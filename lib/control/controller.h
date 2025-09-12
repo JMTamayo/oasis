@@ -24,6 +24,8 @@ public:
   bool IsMeasurementTimeReached();
 
   measuring::Measure Measure();
+
+  void Loop();
 };
 
 } // namespace control

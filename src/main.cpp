@@ -56,6 +56,8 @@ void ControlHandling(void *parameter) {
   measuring::Measure *measure;
 
   while (true) {
+    controller.Loop();
+
     if (controller.IsMeasurementTimeReached()) {
       measure = new measuring::Measure(controller.Measure());
       xQueueSend(MeasurementsQueue, &measure, pdMS_TO_TICKS(10));

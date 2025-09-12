@@ -36,4 +36,8 @@ measuring::Measure Controller::Measure() {
   return measuring::Measure(temperature, humidity);
 }
 
+void Controller::Loop() {
+  // TODO: Implement control loop
+}
+
 } // namespace control
