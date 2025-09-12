@@ -39,3 +39,16 @@
 
 # debug information files
 *.dwo
+
+# Config file:
+include/config.h
+
+# Visual Studio Code
+.vscode/
+
+# PlatformIO
+.pio/
+
+# macOS
+.DS_Store
+
