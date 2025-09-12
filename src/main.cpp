@@ -4,18 +4,18 @@
 
 #include "config.h"
 
-#include "collector.h"
+#include "controller.h"
 #include "logger.h"
+#include "measurement.h"
 #include "mqtt.h"
-#include "sample.h"
 #include "wifi_.h"
 
-TaskHandle_t NetworkManagementTask;
-TaskHandle_t SamplingTask;
+TaskHandle_t NetworksHandlingTask;
+TaskHandle_t ControlHandlingTask;
 
-QueueHandle_t SamplingQueue;
+QueueHandle_t MeasurementsQueue;
 
-void NetworkHandling(void *parameter) {
+void NetworksHandling(void *parameter) {
   WiFiClient *espClient = new WiFiClient();
   PubSubClient *mqttClient = new PubSubClient(*espClient);
 
@@ -29,7 +29,7 @@ void NetworkHandling(void *parameter) {
       MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
       MQTT_TOPIC_MEASUREMENTS_AIR_HUMIDITY, mqttClient);
 
-  sampling::Sample *sample;
+  measuring::Measure *measure;
 
   while (true) {
     if (!wifi.IsConnected()) {
@@ -41,37 +41,35 @@ void NetworkHandling(void *parameter) {
     } else {
       mqtt.Loop();
 
-      while (xQueueReceive(SamplingQueue, &sample, pdMS_TO_TICKS(10)) ==
+      while (xQueueReceive(MeasurementsQueue, &measure, pdMS_TO_TICKS(10)) ==
              pdPASS) {
-        mqtt.SendSample(sample);
+        mqtt.SendMeasurement(measure);
       }
     }
   }
 }
 
-void Sampling(void *parameter) {
-  sampling::Collector collector =
-      sampling::Collector(SAMPLING_INTERVAL_MILLISECONDS);
+void ControlHandling(void *parameter) {
+  control::Controller controller =
+      control::Controller(MEASURING_INTERVAL_MILLISECONDS);
 
-  sampling::Sample *sample;
+  measuring::Measure *measure;
 
   while (true) {
-    if (collector.IsSamplingTimeReached()) {
-      sample = new sampling::Sample(collector.Collect());
-      xQueueSend(SamplingQueue, &sample, pdMS_TO_TICKS(10));
+    if (controller.IsMeasurementTimeReached()) {
+      measure = new measuring::Measure(controller.Measure());
+      xQueueSend(MeasurementsQueue, &measure, pdMS_TO_TICKS(10));
     }
   }
 }
 
 void setup() {
-  xTaskCreatePinnedToCore(NetworkHandling, "NetworkHandling", 10000, NULL, 1,
-                          &NetworkManagementTask, 0);
-  xTaskCreatePinnedToCore(Sampling, "Sampling", 10000, NULL, 1, &SamplingTask,
-                          1);
+  xTaskCreatePinnedToCore(NetworksHandling, "NetworksHandling", 10000, NULL, 1,
+                          &NetworksHandlingTask, 0);
+  xTaskCreatePinnedToCore(ControlHandling, "ControlHandling", 10000, NULL, 1,
+                          &ControlHandlingTask, 1);
 
-  SamplingQueue = xQueueCreate(1, sizeof(sampling::Sample *));
-
-  logging::logger->Initialize();
+  MeasurementsQueue = xQueueCreate(1, sizeof(measuring::Measure *));
 }
 
 void loop() {}

@@ -20,5 +20,5 @@ You need to include a `config.h` file in the `include` directory with the follow
     MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE
     MQTT_TOPIC_MEASUREMENTS_AIR_HUMIDITY
 
-    SAMPLING_INTERVAL_MILLISECONDS
+    MEASURING_INTERVAL_MILLISECONDS
 ```
