@@ -6,11 +6,11 @@ namespace logging {
 
 const unsigned long Logger::getBaudRate() const { return this->baudRate; }
 
-Logger::Logger() : baudRate(115200) {}
+Logger::Logger() : baudRate(115200) { this->initialize(); }
 
 Logger::~Logger() {}
 
-void Logger::Initialize() {
+void Logger::initialize() {
   Serial.begin(this->getBaudRate());
   while (!Serial) {
   }

@@ -2,8 +2,8 @@
 #include <WiFi.h>
 
 #include "logger.h"
+#include "measurement.h"
 #include "mqtt.h"
-#include "sample.h"
 
 namespace services {
 
@@ -92,18 +92,18 @@ void MqttService::Connect() {
 
 void MqttService::Loop() { this->getClient()->loop(); }
 
-void MqttService::SendSample(sampling::Sample *sample) {
+void MqttService::SendMeasurement(measuring::Measure *measure) {
   const String topicBase = String(this->getTopicBase()) +
                            String(this->getTopicMeasurements()) +
                            String(this->getTopicMeasurementsAir());
 
   this->getClient()->publish(
       (topicBase + String(this->getTopicMeasurementsAirTemperature())).c_str(),
-      String(sample->GetAirTemperature()).c_str());
+      String(measure->GetAirTemperature()).c_str());
 
   this->getClient()->publish(
       (topicBase + String(this->getTopicMeasurementsAirHumidity())).c_str(),
-      String(sample->GetAirHumidity()).c_str());
+      String(measure->GetAirHumidity()).c_str());
 }
 
 } // namespace services

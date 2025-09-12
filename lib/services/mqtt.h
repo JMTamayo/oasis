@@ -3,7 +3,7 @@
 
 #include <PubSubClient.h>
 
-#include "sample.h"
+#include "measurement.h"
 
 namespace services {
 
@@ -65,7 +65,7 @@ public:
 
   void Loop();
 
-  void SendSample(sampling::Sample *sample);
+  void SendMeasurement(measuring::Measure *measure);
 };
 
 } // namespace services

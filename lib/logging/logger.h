@@ -14,7 +14,7 @@ public:
 
   ~Logger();
 
-  void Initialize();
+  void initialize();
 
   void Error(String message);
 
