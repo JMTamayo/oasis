@@ -1,7 +1,6 @@
 #include <Arduino.h>
 
 #include "controller.h"
-#include "measurement.h"
 
 namespace control {
 
@@ -27,13 +26,17 @@ bool Controller::IsMeasurementTimeReached() {
   return millis() - this->getLastMeasurementTimeMs() >= this->getIntervalMs();
 }
 
-measuring::Measure Controller::Measure() {
-  float temperature = random(2400, 3000) / 100.0;
-  float humidity = random(4000, 6000) / 100.0;
+measurements::Measures Controller::Measure() {
+  float temperature = random(2400, 3000) / 100.0; // TODO: Implement measure
+  float humidity = random(4000, 6000) / 100.0;    // TODO: Implement measure
 
   this->setLastMeasurementTimeMs(millis());
 
-  return measuring::Measure(temperature, humidity);
+  return measurements::Measures(temperature, humidity);
+}
+
+void Controller::Loop() {
+  // TODO: Implement control loop
 }
 
 } // namespace control

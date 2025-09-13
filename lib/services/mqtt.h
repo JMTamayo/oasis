@@ -3,9 +3,32 @@
 
 #include <PubSubClient.h>
 
-#include "measurement.h"
-
 namespace services {
+
+class MqttMessage {
+private:
+  String topic;
+  String payload;
+
+public:
+  MqttMessage(String topic, const char *payload);
+
+  MqttMessage(String topic, String payload);
+
+  MqttMessage(String topic, bool payload);
+
+  MqttMessage(String topic, float payload);
+
+  MqttMessage(String topic, int payload);
+
+  MqttMessage(String topic, long payload);
+
+  ~MqttMessage();
+
+  const char *GetTopic() const;
+
+  const char *GetPayload() const;
+};
 
 class MqttService {
 private:
@@ -15,13 +38,6 @@ private:
   const char *password;
   const char *clientId;
   const unsigned long maxRetryTimeMs;
-
-  const char *topicBase;
-
-  const char *topicMeasurements;
-  const char *topicMeasurementsAir;
-  const char *topicMeasurementsAirTemperature;
-  const char *topicMeasurementsAirHumidity;
 
   PubSubClient *client;
 
@@ -37,35 +53,24 @@ private:
 
   const unsigned long getMaxRetryTimeMs() const;
 
-  const char *getTopicBase() const;
-
-  const char *getTopicMeasurements() const;
-
-  const char *getTopicMeasurementsAir() const;
-
-  const char *getTopicMeasurementsAirTemperature() const;
-
-  const char *getTopicMeasurementsAirHumidity() const;
-
   PubSubClient *getClient();
 
 public:
   MqttService(const char *server, const unsigned int port, const char *user,
               const char *password, const char *clientId,
-              const unsigned long maxRetryTimeMs, const char *topicBase,
-              const char *topicMeasurements, const char *topicMeasurementsAir,
-              const char *topicMeasurementsAirTemperature,
-              const char *topicMeasurementsAirHumidity, PubSubClient *client);
+              const unsigned long maxRetryTimeMs, PubSubClient *client);
 
   ~MqttService();
 
-  bool IsConnected();
-
   void Connect();
 
-  void Loop();
+  bool IsConnected();
 
-  void SendMeasurement(measuring::Measure *measure);
+  void Publish(MqttMessage message);
+
+  void Subscribe(const char *topic);
+
+  void Loop();
 };
 
 } // namespace services

@@ -1,7 +1,7 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include "measurement.h"
+#include "measures.h"
 
 namespace control {
 
@@ -23,7 +23,9 @@ public:
 
   bool IsMeasurementTimeReached();
 
-  measuring::Measure Measure();
+  measurements::Measures Measure();
+
+  void Loop();
 };
 
 } // namespace control

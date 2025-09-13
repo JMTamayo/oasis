@@ -17,22 +17,22 @@ void Logger::initialize() {
 }
 
 void Logger::Error(String message) {
-  Serial.print("ERROR/");
+  Serial.print("ERROR: ");
   Serial.println(message);
 }
 
 void Logger::Warning(String message) {
-  Serial.print("WARN/");
+  Serial.print("WARN: ");
   Serial.println(message);
 }
 
 void Logger::Debug(String message) {
-  Serial.print("DEBUG/");
+  Serial.print("DEBUG: ");
   Serial.println(message);
 }
 
 void Logger::Info(String message) {
-  Serial.print("INFO/");
+  Serial.print("INFO: ");
   Serial.println(message);
 }
 

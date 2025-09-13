@@ -25,23 +25,22 @@ void WifiService::Connect() {
   WiFi.mode(WIFI_STA);
   WiFi.setTxPower(WIFI_POWER_8_5dBm);
 
-  logging::logger->Info("Connecting to WiFi network: " +
-                        String(this->getSsid()));
-
   unsigned long startTimeMs = millis();
   unsigned long retryTimeMs = 0;
 
   while (!this->IsConnected()) {
     if (retryTimeMs >= this->getMaxRetryTimeMs()) {
-      logging::logger->Error("Connection to WiFi network failed");
+      logging::logger->Error("Connection to WiFi network failed. SSID: " +
+                             String(this->getSsid()));
       return;
     }
 
     retryTimeMs = millis() - startTimeMs;
   }
 
-  logging::logger->Info("WiFi connection successfully established. IP: " +
-                        String(WiFi.localIP().toString().c_str()));
+  logging::logger->Info(
+      "Connected to WiFi network. SSID: " + String(this->getSsid()) +
+      ". IP: " + String(WiFi.localIP().toString().c_str()));
 }
 
 bool WifiService::IsConnected() { return WiFi.status() == WL_CONNECTED; }

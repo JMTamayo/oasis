@@ -1,35 +1,48 @@
 #include <Arduino.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
+#include <vector>
 
 #include "config.h"
 
 #include "controller.h"
 #include "logger.h"
-#include "measurement.h"
 #include "mqtt.h"
 #include "wifi_.h"
 
 TaskHandle_t NetworksHandlingTask;
 TaskHandle_t ControlHandlingTask;
 
-QueueHandle_t MeasurementsQueue;
+QueueHandle_t MqttMeasuresEventQueue;
 
-void NetworksHandling(void *parameter) {
+void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
+  String topicStr = topic;
+  String payloadString = (char *)payload;
+  payloadString.remove(length);
+
+  logging::logger->Info("Topic: " + topicStr + ". Payload: " + payloadString);
+}
+
+void networksHandling(void *parameter) {
   WiFiClient *espClient = new WiFiClient();
   PubSubClient *mqttClient = new PubSubClient(*espClient);
+
+  mqttClient->setCallback(mqttSubscriptionCallback);
 
   services::WifiService wifi = services::WifiService(
       WIFI_SSID, WIFI_PASSWORD, WIFI_MAX_RETRY_TIME_MILLISECONDS);
 
   services::MqttService mqtt = services::MqttService(
       MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, MQTT_CLIENT_ID,
-      MQTT_MAX_RETRY_TIME_MILLISECONDS, MQTT_TOPIC_BASE,
-      MQTT_TOPIC_MEASUREMENTS, MQTT_TOPIC_MEASUREMENTS_AIR,
-      MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
-      MQTT_TOPIC_MEASUREMENTS_AIR_HUMIDITY, mqttClient);
+      MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient);
 
-  measuring::Measure *measure;
+  String topicMeasurements =
+      String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_MEASUREMENTS);
+
+  String topicControl =
+      String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_CONTROL) + "/#";
+
+  std::vector<services::MqttMessage> *measures;
 
   while (true) {
     if (!wifi.IsConnected()) {
@@ -37,39 +50,68 @@ void NetworksHandling(void *parameter) {
 
     } else if (!mqtt.IsConnected()) {
       mqtt.Connect();
+      mqtt.Subscribe(topicControl.c_str());
 
     } else {
       mqtt.Loop();
 
-      while (xQueueReceive(MeasurementsQueue, &measure, pdMS_TO_TICKS(10)) ==
-             pdPASS) {
-        mqtt.SendMeasurement(measure);
+      while (xQueueReceive(MqttMeasuresEventQueue, &measures,
+                           pdMS_TO_TICKS(10)) == pdPASS) {
+        if (measures) {
+          for (const auto &measure : *measures) {
+            mqtt.Publish(measure);
+          }
+          delete measures;
+        }
       }
     }
   }
 }
 
-void ControlHandling(void *parameter) {
+void controlHandling(void *parameter) {
   control::Controller controller =
       control::Controller(MEASURING_INTERVAL_MILLISECONDS);
 
-  measuring::Measure *measure;
+  String topicMeasurements =
+      String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_MEASUREMENTS);
+
+  std::vector<services::MqttMessage> *measures;
 
   while (true) {
+    controller.Loop();
+
+    // TODO: Handle new subscription messages
+
     if (controller.IsMeasurementTimeReached()) {
-      measure = new measuring::Measure(controller.Measure());
-      xQueueSend(MeasurementsQueue, &measure, pdMS_TO_TICKS(10));
+      measurements::Measures measure = controller.Measure();
+
+      measures = new std::vector<services::MqttMessage>();
+
+      services::MqttMessage airTemperatureMessage = services::MqttMessage(
+          topicMeasurements + MQTT_TOPIC_MEASUREMENTS_AIR +
+              MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
+          measure.GetAirTemperature());
+      measures->push_back(airTemperatureMessage);
+
+      services::MqttMessage airHumidityMessage = services::MqttMessage(
+          topicMeasurements + MQTT_TOPIC_MEASUREMENTS_AIR +
+              MQTT_TOPIC_MEASUREMENTS_AIR_HUMIDITY,
+          measure.GetAirHumidity());
+      measures->push_back(airHumidityMessage);
+
+      xQueueSend(MqttMeasuresEventQueue, &measures, pdMS_TO_TICKS(10));
     }
   }
 }
 
 void setup() {
-  xTaskCreatePinnedToCore(NetworksHandling, "NetworksHandling", 10000, NULL, 1,
+  xTaskCreatePinnedToCore(networksHandling, "networksHandling", 10000, NULL, 1,
                           &NetworksHandlingTask, 0);
-  xTaskCreatePinnedToCore(ControlHandling, "ControlHandling", 10000, NULL, 1,
+  xTaskCreatePinnedToCore(controlHandling, "controlHandling", 10000, NULL, 1,
                           &ControlHandlingTask, 1);
 
-  MeasurementsQueue = xQueueCreate(1, sizeof(measuring::Measure *));
+  MqttMeasuresEventQueue =
+      xQueueCreate(1, sizeof(std::vector<services::MqttMessage> *));
 }
 
 void loop() {}
