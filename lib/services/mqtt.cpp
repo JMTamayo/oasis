@@ -2,10 +2,33 @@
 #include <WiFi.h>
 
 #include "logger.h"
-#include "measurement.h"
 #include "mqtt.h"
 
 namespace services {
+
+const char *MqttMessage::GetTopic() const { return this->topic.c_str(); }
+
+const char *MqttMessage::GetPayload() const { return this->payload.c_str(); }
+
+MqttMessage::MqttMessage(String topic, const char *payload)
+    : topic(topic), payload(String(payload)) {}
+
+MqttMessage::MqttMessage(String topic, String payload)
+    : topic(topic), payload(payload) {}
+
+MqttMessage::MqttMessage(String topic, bool payload)
+    : topic(topic), payload(payload ? "true" : "false") {}
+
+MqttMessage::MqttMessage(String topic, float payload)
+    : topic(topic), payload(String(payload)) {}
+
+MqttMessage::MqttMessage(String topic, int payload)
+    : topic(topic), payload(String(payload)) {}
+
+MqttMessage::MqttMessage(String topic, long payload)
+    : topic(topic), payload(String(payload)) {}
+
+MqttMessage::~MqttMessage() {}
 
 const char *MqttService::getClientId() const { return this->clientId; }
 
@@ -21,53 +44,21 @@ const unsigned long MqttService::getMaxRetryTimeMs() const {
   return this->maxRetryTimeMs;
 }
 
-const char *MqttService::getTopicBase() const { return this->topicBase; }
-
-const char *MqttService::getTopicMeasurements() const {
-  return this->topicMeasurements;
-}
-
-const char *MqttService::getTopicMeasurementsAir() const {
-  return this->topicMeasurementsAir;
-}
-
-const char *MqttService::getTopicMeasurementsAirTemperature() const {
-  return this->topicMeasurementsAirTemperature;
-}
-
-const char *MqttService::getTopicMeasurementsAirHumidity() const {
-  return this->topicMeasurementsAirHumidity;
-}
-
 PubSubClient *MqttService::getClient() { return this->client; }
 
 MqttService::MqttService(const char *server, const unsigned int port,
                          const char *user, const char *password,
                          const char *clientId,
                          const unsigned long maxRetryTimeMs,
-                         const char *topicBase, const char *topicMeasurements,
-                         const char *topicMeasurementsAir,
-                         const char *topicMeasurementsAirTemperature,
-                         const char *topicMeasurementsAirHumidity,
                          PubSubClient *client)
     : server(server), port(port), user(user), password(password),
-      clientId(clientId), maxRetryTimeMs(maxRetryTimeMs), topicBase(topicBase),
-      topicMeasurements(topicMeasurements),
-      topicMeasurementsAir(topicMeasurementsAir),
-      topicMeasurementsAirTemperature(topicMeasurementsAirTemperature),
-      topicMeasurementsAirHumidity(topicMeasurementsAirHumidity),
-      client(client) {
+      clientId(clientId), maxRetryTimeMs(maxRetryTimeMs), client(client) {
   client->setServer(this->getServer(), this->getPort());
 }
 
 MqttService::~MqttService() { delete this->client; }
 
-bool MqttService::IsConnected() { return this->getClient()->connected(); }
-
 void MqttService::Connect() {
-  logging::logger->Info("Connecting to MQTT server: " +
-                        String(this->getServer()));
-
   unsigned long startTimeMs = millis();
   unsigned long retryTimeMs = 0;
 
@@ -78,7 +69,8 @@ void MqttService::Connect() {
     }
 
     if (retryTimeMs >= this->getMaxRetryTimeMs()) {
-      logging::logger->Error("Connection to MQTT server failed");
+      logging::logger->Error("Connection to MQTT server failed. Server: " +
+                             String(this->getServer()));
       return;
     }
 
@@ -86,24 +78,22 @@ void MqttService::Connect() {
   }
 
   logging::logger->Info(
-      "MQTT serverconnection successfully established. Client ID " +
-      String(this->getClientId()));
+      "Connected to MQTT server. Server: " + String(this->getServer()) +
+      ". Client ID: " + String(this->getClientId()));
+}
+
+bool MqttService::IsConnected() { return this->getClient()->connected(); }
+
+void MqttService::Publish(MqttMessage message) {
+  this->getClient()->publish(message.GetTopic(), message.GetPayload());
+}
+
+void MqttService::Subscribe(const char *topic) {
+  this->getClient()->subscribe(topic);
+  logging::logger->Debug("Subscribed to topic from MQTT server: " +
+                         String(topic));
 }
 
 void MqttService::Loop() { this->getClient()->loop(); }
-
-void MqttService::SendMeasurement(measuring::Measure *measure) {
-  const String topicBase = String(this->getTopicBase()) +
-                           String(this->getTopicMeasurements()) +
-                           String(this->getTopicMeasurementsAir());
-
-  this->getClient()->publish(
-      (topicBase + String(this->getTopicMeasurementsAirTemperature())).c_str(),
-      String(measure->GetAirTemperature()).c_str());
-
-  this->getClient()->publish(
-      (topicBase + String(this->getTopicMeasurementsAirHumidity())).c_str(),
-      String(measure->GetAirHumidity()).c_str());
-}
 
 } // namespace services
