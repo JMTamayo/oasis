@@ -84,8 +84,11 @@ void MqttService::Connect() {
 
 bool MqttService::IsConnected() { return this->getClient()->connected(); }
 
-void MqttService::Publish(MqttMessage message) {
-  this->getClient()->publish(message.GetTopic(), message.GetPayload());
+void MqttService::Publish(MqttMessage *message) {
+  logging::logger->Debug("Publishing message to MQTT server. Topic: " +
+                         String(message->GetTopic()) +
+                         ". Payload: " + String(message->GetPayload()));
+  this->getClient()->publish(message->GetTopic(), message->GetPayload());
 }
 
 void MqttService::Subscribe(const char *topic) {
