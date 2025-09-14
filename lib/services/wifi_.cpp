@@ -23,7 +23,6 @@ void WifiService::Connect() {
   WiFi.begin(this->getSsid(), this->getPassword());
 
   WiFi.mode(WIFI_STA);
-  WiFi.setTxPower(WIFI_POWER_8_5dBm);
 
   unsigned long startTimeMs = millis();
   unsigned long retryTimeMs = 0;
