@@ -66,7 +66,7 @@ public:
 
   bool IsConnected();
 
-  void Publish(MqttMessage message);
+  void Publish(MqttMessage *message);
 
   void Subscribe(const char *topic);
 

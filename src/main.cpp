@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
-#include <vector>
 
 #include "config.h"
 
@@ -13,14 +12,20 @@
 TaskHandle_t NetworksHandlingTask;
 TaskHandle_t ControlHandlingTask;
 
-QueueHandle_t MqttMeasuresEventQueue;
+QueueHandle_t MqttPublishingEventQueue;
+QueueHandle_t MqttSubscriptionEventQueue;
 
 void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
   String topicStr = topic;
   String payloadString = (char *)payload;
   payloadString.remove(length);
 
-  logging::logger->Info("Topic: " + topicStr + ". Payload: " + payloadString);
+  services::MqttMessage *mqttMessage =
+      new services::MqttMessage(topicStr, payloadString);
+
+  logging::logger->Debug("Received message from MQTT server. Topic: " +
+                         topicStr + ". Payload: " + payloadString);
+  xQueueSend(MqttSubscriptionEventQueue, &mqttMessage, pdMS_TO_TICKS(1000));
 }
 
 void networksHandling(void *parameter) {
@@ -42,8 +47,6 @@ void networksHandling(void *parameter) {
   String topicControl =
       String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_CONTROL) + "/#";
 
-  std::vector<services::MqttMessage> *measures;
-
   while (true) {
     if (!wifi.IsConnected()) {
       wifi.Connect();
@@ -55,14 +58,11 @@ void networksHandling(void *parameter) {
     } else {
       mqtt.Loop();
 
-      while (xQueueReceive(MqttMeasuresEventQueue, &measures,
+      services::MqttMessage *mqttMessage;
+      while (xQueueReceive(MqttPublishingEventQueue, &mqttMessage,
                            pdMS_TO_TICKS(10)) == pdPASS) {
-        if (measures) {
-          for (const auto &measure : *measures) {
-            mqtt.Publish(measure);
-          }
-          delete measures;
-        }
+        mqtt.Publish(mqttMessage);
+        delete mqttMessage;
       }
     }
   }
@@ -75,31 +75,33 @@ void controlHandling(void *parameter) {
   String topicMeasurements =
       String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_MEASUREMENTS);
 
-  std::vector<services::MqttMessage> *measures;
-
   while (true) {
-    controller.Loop();
+    services::MqttMessage *mqttMessage;
+    while (xQueueReceive(MqttSubscriptionEventQueue, &mqttMessage,
+                         pdMS_TO_TICKS(10)) == pdPASS) {
+      // TODO: Handle control messages
 
-    // TODO: Handle new subscription messages
+      delete mqttMessage;
+    }
+
+    controller.Loop();
 
     if (controller.IsMeasurementTimeReached()) {
       measurements::Measures measure = controller.Measure();
 
-      measures = new std::vector<services::MqttMessage>();
-
-      services::MqttMessage airTemperatureMessage = services::MqttMessage(
+      services::MqttMessage *airTemperatureMessage = new services::MqttMessage(
           topicMeasurements + MQTT_TOPIC_MEASUREMENTS_AIR +
               MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
           measure.GetAirTemperature());
-      measures->push_back(airTemperatureMessage);
+      xQueueSend(MqttPublishingEventQueue, &airTemperatureMessage,
+                 pdMS_TO_TICKS(10));
 
-      services::MqttMessage airHumidityMessage = services::MqttMessage(
+      services::MqttMessage *airHumidityMessage = new services::MqttMessage(
           topicMeasurements + MQTT_TOPIC_MEASUREMENTS_AIR +
               MQTT_TOPIC_MEASUREMENTS_AIR_HUMIDITY,
           measure.GetAirHumidity());
-      measures->push_back(airHumidityMessage);
-
-      xQueueSend(MqttMeasuresEventQueue, &measures, pdMS_TO_TICKS(10));
+      xQueueSend(MqttPublishingEventQueue, &airHumidityMessage,
+                 pdMS_TO_TICKS(10));
     }
   }
 }
@@ -110,8 +112,8 @@ void setup() {
   xTaskCreatePinnedToCore(controlHandling, "controlHandling", 10000, NULL, 1,
                           &ControlHandlingTask, 1);
 
-  MqttMeasuresEventQueue =
-      xQueueCreate(1, sizeof(std::vector<services::MqttMessage> *));
+  MqttPublishingEventQueue = xQueueCreate(2, sizeof(services::MqttMessage *));
+  MqttSubscriptionEventQueue = xQueueCreate(1, sizeof(services::MqttMessage *));
 }
 
 void loop() {}
