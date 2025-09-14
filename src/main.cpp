@@ -15,6 +15,19 @@ TaskHandle_t ControlHandlingTask;
 QueueHandle_t MqttPublishingEventQueue;
 QueueHandle_t MqttSubscriptionEventQueue;
 
+String TOPIC_CONTROL = String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_CONTROL);
+String TOPIC_CONTROL_PUMP = String(MQTT_TOPIC_BASE) +
+                            String(MQTT_TOPIC_CONTROL) +
+                            String(MQTT_TOPIC_CONTROL_PUMP);
+
+String TOPIC_MEASUREMENTS_PUMP = String(MQTT_TOPIC_BASE) +
+                                 String(MQTT_TOPIC_MEASUREMENTS) +
+                                 String(MQTT_TOPIC_MEASUREMENTS_PUMP);
+
+String TOPIC_MEASUREMENTS_AIR = String(MQTT_TOPIC_BASE) +
+                                String(MQTT_TOPIC_MEASUREMENTS) +
+                                String(MQTT_TOPIC_MEASUREMENTS_AIR);
+
 void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
   String topicStr = topic;
   String payloadString = (char *)payload;
@@ -23,9 +36,17 @@ void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
   services::MqttMessage *mqttMessage =
       new services::MqttMessage(topicStr, payloadString);
 
-  logging::logger->Debug("Received message from MQTT server. Topic: " +
-                         topicStr + ". Payload: " + payloadString);
-  xQueueSend(MqttSubscriptionEventQueue, &mqttMessage, pdMS_TO_TICKS(1000));
+  if (topicStr == TOPIC_CONTROL_PUMP &&
+      (payloadString == "0" || payloadString == "1")) {
+    logging::logger->Debug("Received message from MQTT server. Topic: " +
+                           topicStr + ". Payload: " + payloadString);
+    xQueueSend(MqttSubscriptionEventQueue, &mqttMessage, pdMS_TO_TICKS(200));
+
+  } else {
+    logging::logger->Error(
+        "Received invalid message from MQTT server. Topic: " + topicStr +
+        ". Payload: " + payloadString);
+  }
 }
 
 void networksHandling(void *parameter) {
@@ -41,11 +62,7 @@ void networksHandling(void *parameter) {
       MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, MQTT_CLIENT_ID,
       MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient);
 
-  String topicMeasurements =
-      String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_MEASUREMENTS);
-
-  String topicControl =
-      String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_CONTROL) + "/#";
+  services::MqttMessage *mqttMessage;
 
   while (true) {
     if (!wifi.IsConnected()) {
@@ -53,12 +70,11 @@ void networksHandling(void *parameter) {
 
     } else if (!mqtt.IsConnected()) {
       mqtt.Connect();
-      mqtt.Subscribe(topicControl.c_str());
+      mqtt.Subscribe((TOPIC_CONTROL + "/#").c_str());
 
     } else {
       mqtt.Loop();
 
-      services::MqttMessage *mqttMessage;
       while (xQueueReceive(MqttPublishingEventQueue, &mqttMessage,
                            pdMS_TO_TICKS(10)) == pdPASS) {
         mqtt.Publish(mqttMessage);
@@ -68,40 +84,48 @@ void networksHandling(void *parameter) {
   }
 }
 
+void mqttPublishMeasurementsCallback(measurements::Measures *measure) {
+  services::MqttMessage *airTemperatureMessage = new services::MqttMessage(
+      TOPIC_MEASUREMENTS_AIR + MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
+      measure->GetAirTemperature());
+  xQueueSend(MqttPublishingEventQueue, &airTemperatureMessage,
+             pdMS_TO_TICKS(10));
+
+  services::MqttMessage *airRelativeHumidityMessage = new services::MqttMessage(
+      TOPIC_MEASUREMENTS_AIR + MQTT_TOPIC_MEASUREMENTS_AIR_RELATIVE_HUMIDITY,
+      measure->GetAirRelativeHumidity());
+  xQueueSend(MqttPublishingEventQueue, &airRelativeHumidityMessage,
+             pdMS_TO_TICKS(10));
+
+  services::MqttMessage *pumpStateMessage = new services::MqttMessage(
+      TOPIC_MEASUREMENTS_PUMP + MQTT_TOPIC_MEASUREMENTS_PUMP_STATE,
+      measure->GetPumpState());
+  xQueueSend(MqttPublishingEventQueue, &pumpStateMessage, pdMS_TO_TICKS(10));
+}
+
 void controlHandling(void *parameter) {
   control::Controller controller =
       control::Controller(MEASURING_INTERVAL_MILLISECONDS);
 
-  String topicMeasurements =
-      String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_MEASUREMENTS);
+  services::MqttMessage *mqttMessage;
 
   while (true) {
-    services::MqttMessage *mqttMessage;
-    while (xQueueReceive(MqttSubscriptionEventQueue, &mqttMessage,
-                         pdMS_TO_TICKS(10)) == pdPASS) {
-      // TODO: Handle control messages
+    controller.Loop();
 
+    if (xQueueReceive(MqttSubscriptionEventQueue, &mqttMessage,
+                      pdMS_TO_TICKS(10)) == pdPASS) {
+      if (String(mqttMessage->GetTopic()) == TOPIC_CONTROL_PUMP) {
+        bool pumpState = String(mqttMessage->GetPayload()) == "1";
+        logging::logger->Debug("Processing pump control request. Operation: " +
+                               String(pumpState ? "ON" : "OFF"));
+        controller.StartPump(pumpState);
+      }
       delete mqttMessage;
     }
 
-    controller.Loop();
-
     if (controller.IsMeasurementTimeReached()) {
       measurements::Measures measure = controller.Measure();
-
-      services::MqttMessage *airTemperatureMessage = new services::MqttMessage(
-          topicMeasurements + MQTT_TOPIC_MEASUREMENTS_AIR +
-              MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
-          measure.GetAirTemperature());
-      xQueueSend(MqttPublishingEventQueue, &airTemperatureMessage,
-                 pdMS_TO_TICKS(10));
-
-      services::MqttMessage *airHumidityMessage = new services::MqttMessage(
-          topicMeasurements + MQTT_TOPIC_MEASUREMENTS_AIR +
-              MQTT_TOPIC_MEASUREMENTS_AIR_HUMIDITY,
-          measure.GetAirHumidity());
-      xQueueSend(MqttPublishingEventQueue, &airHumidityMessage,
-                 pdMS_TO_TICKS(10));
+      mqttPublishMeasurementsCallback(&measure);
     }
   }
 }

@@ -30,9 +30,15 @@ measurements::Measures Controller::Measure() {
   float temperature = random(2400, 3000) / 100.0; // TODO: Implement measure
   float humidity = random(4000, 6000) / 100.0;    // TODO: Implement measure
 
+  bool pumpState = random(0, 2) == 1; // TODO: Implement measure pump state
+
   this->setLastMeasurementTimeMs(millis());
 
-  return measurements::Measures(temperature, humidity);
+  return measurements::Measures(temperature, humidity, pumpState);
+}
+
+void Controller::StartPump(bool state) {
+  // TODO: Implement start pump
 }
 
 void Controller::Loop() {

@@ -4,13 +4,17 @@
 
 namespace measurements {
 
-Measures::Measures(float airTemperature, float airHumidity)
-    : airTemperature(airTemperature), airHumidity(airHumidity) {}
+Measures::Measures(float airTemperature, float airRelativeHumidity,
+                   bool pumpState)
+    : airTemperature(airTemperature), airRelativeHumidity(airRelativeHumidity),
+      pumpState(pumpState) {}
 
 Measures::~Measures() {}
 
 float Measures::GetAirTemperature() { return this->airTemperature; }
 
-float Measures::GetAirHumidity() { return this->airHumidity; }
+float Measures::GetAirRelativeHumidity() { return this->airRelativeHumidity; }
+
+bool Measures::GetPumpState() { return this->pumpState; }
 
 } // namespace measurements

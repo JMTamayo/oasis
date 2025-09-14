@@ -17,7 +17,7 @@ MqttMessage::MqttMessage(String topic, String payload)
     : topic(topic), payload(payload) {}
 
 MqttMessage::MqttMessage(String topic, bool payload)
-    : topic(topic), payload(payload ? "true" : "false") {}
+    : topic(topic), payload(payload ? "1" : "0") {}
 
 MqttMessage::MqttMessage(String topic, float payload)
     : topic(topic), payload(String(payload)) {}

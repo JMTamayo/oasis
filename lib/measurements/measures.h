@@ -8,16 +8,20 @@ namespace measurements {
 class Measures {
 private:
   float airTemperature;
-  float airHumidity;
+  float airRelativeHumidity;
+
+  bool pumpState;
 
 public:
-  Measures(float airTemperature, float airHumidity);
+  Measures(float airTemperature, float airRelativeHumidity, bool pumpState);
 
   ~Measures();
 
   float GetAirTemperature();
 
-  float GetAirHumidity();
+  float GetAirRelativeHumidity();
+
+  bool GetPumpState();
 };
 
 } // namespace measurements
