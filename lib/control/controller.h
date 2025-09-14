@@ -25,6 +25,8 @@ public:
 
   measurements::Measures Measure();
 
+  void StartPump(bool state);
+
   void Loop();
 };
 

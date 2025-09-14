@@ -37,6 +37,10 @@ measurements::Measures Controller::Measure() {
   return measurements::Measures(temperature, humidity, pumpState);
 }
 
+void Controller::StartPump(bool state) {
+  // TODO: Implement start pump
+}
+
 void Controller::Loop() {
   // TODO: Implement control loop
 }
