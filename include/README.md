@@ -1,24 +1,14 @@
 # Include Directory
 
-You need to include a `config.h` file in the `include` directory with the following configuration parameters:
+You should include a `secrets.h` file in the `./include` directory with the following configuration parameters:
 
 ```
     WIFI_SSID
     WIFI_PASSWORD
-    WIFI_MAX_RETRY_TIME_MILLISECONDS
 
     MQTT_SERVER
     MQTT_PORT
     MQTT_USER
     MQTT_PASSWORD
     MQTT_CLIENT_ID
-    MQTT_MAX_RETRY_TIME_MILLISECONDS
-    
-    MQTT_TOPIC_BASE
-    MQTT_TOPIC_MEASUREMENTS
-    MQTT_TOPIC_MEASUREMENTS_AIR
-    MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE
-    MQTT_TOPIC_MEASUREMENTS_AIR_HUMIDITY
-
-    MEASURING_INTERVAL_MILLISECONDS
 ```
