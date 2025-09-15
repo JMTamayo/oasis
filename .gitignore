@@ -40,8 +40,8 @@
 # debug information files
 *.dwo
 
-# Config file:
-include/config.h
+# Config files:
+include/secrets.h
 
 # Visual Studio Code
 .vscode/

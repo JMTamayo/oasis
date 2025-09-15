@@ -2,7 +2,8 @@
 #include <PubSubClient.h>
 #include <WiFi.h>
 
-#include "config.h"
+#include "parameters.h"
+#include "secrets.h"
 
 #include "controller.h"
 #include "logger.h"
