@@ -10,16 +10,24 @@ private:
   float airTemperature;
   float airRelativeHumidity;
 
+  float waterFlowRate;
+  float waterVolume;
+
   bool pumpState;
 
 public:
-  Measures(float airTemperature, float airRelativeHumidity, bool pumpState);
+  Measures(float airTemperature, float airRelativeHumidity, float waterFlowRate,
+           float waterVolume, bool pumpState);
 
   ~Measures();
 
   float GetAirTemperature();
 
   float GetAirRelativeHumidity();
+
+  float GetWaterFlowRate();
+
+  float GetWaterVolume();
 
   bool GetPumpState();
 };
