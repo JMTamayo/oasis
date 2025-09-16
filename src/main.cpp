@@ -6,6 +6,9 @@
 #include "secrets.h"
 
 #include "controller.h"
+#include "dht11.h"
+#include "yf_s401.h"
+
 #include "logger.h"
 #include "mqtt.h"
 #include "wifi_.h"
@@ -24,10 +27,12 @@ String TOPIC_CONTROL_PUMP = String(MQTT_TOPIC_BASE) +
 String TOPIC_MEASUREMENTS_PUMP = String(MQTT_TOPIC_BASE) +
                                  String(MQTT_TOPIC_MEASUREMENTS) +
                                  String(MQTT_TOPIC_MEASUREMENTS_PUMP);
-
 String TOPIC_MEASUREMENTS_AIR = String(MQTT_TOPIC_BASE) +
                                 String(MQTT_TOPIC_MEASUREMENTS) +
                                 String(MQTT_TOPIC_MEASUREMENTS_AIR);
+String TOPIC_MEASUREMENTS_WATER = String(MQTT_TOPIC_BASE) +
+                                  String(MQTT_TOPIC_MEASUREMENTS) +
+                                  String(MQTT_TOPIC_MEASUREMENTS_WATER);
 
 void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
   String topicStr = topic;
@@ -56,29 +61,29 @@ void networksHandling(void *parameter) {
 
   mqttClient->setCallback(mqttSubscriptionCallback);
 
-  services::WifiService wifi = services::WifiService(
+  services::WifiService *wifi = new services::WifiService(
       WIFI_SSID, WIFI_PASSWORD, WIFI_MAX_RETRY_TIME_MILLISECONDS);
 
-  services::MqttService mqtt = services::MqttService(
+  services::MqttService *mqtt = new services::MqttService(
       MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, MQTT_CLIENT_ID,
       MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient);
 
   services::MqttMessage *mqttMessage;
 
   while (true) {
-    if (!wifi.IsConnected()) {
-      wifi.Connect();
+    if (!wifi->IsConnected()) {
+      wifi->Connect();
 
-    } else if (!mqtt.IsConnected()) {
-      mqtt.Connect();
-      mqtt.Subscribe((TOPIC_CONTROL + "/#").c_str());
+    } else if (!mqtt->IsConnected()) {
+      mqtt->Connect();
+      mqtt->Subscribe((TOPIC_CONTROL + "/#").c_str());
 
     } else {
-      mqtt.Loop();
+      mqtt->Loop();
 
       while (xQueueReceive(MqttPublishingEventQueue, &mqttMessage,
                            pdMS_TO_TICKS(10)) == pdPASS) {
-        mqtt.Publish(mqttMessage);
+        mqtt->Publish(mqttMessage);
         delete mqttMessage;
       }
     }
@@ -86,17 +91,43 @@ void networksHandling(void *parameter) {
 }
 
 void mqttPublishMeasurementsCallback(measurements::Measures *measure) {
-  services::MqttMessage *airTemperatureMessage = new services::MqttMessage(
-      TOPIC_MEASUREMENTS_AIR + MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
-      measure->GetAirTemperature());
-  xQueueSend(MqttPublishingEventQueue, &airTemperatureMessage,
-             pdMS_TO_TICKS(10));
+  float airTemperature = measure->GetAirTemperature();
+  if (!isnan(airTemperature)) {
+    services::MqttMessage *airTemperatureMessage = new services::MqttMessage(
+        TOPIC_MEASUREMENTS_AIR + MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
+        airTemperature);
+    xQueueSend(MqttPublishingEventQueue, &airTemperatureMessage,
+               pdMS_TO_TICKS(10));
+  }
 
-  services::MqttMessage *airRelativeHumidityMessage = new services::MqttMessage(
-      TOPIC_MEASUREMENTS_AIR + MQTT_TOPIC_MEASUREMENTS_AIR_RELATIVE_HUMIDITY,
-      measure->GetAirRelativeHumidity());
-  xQueueSend(MqttPublishingEventQueue, &airRelativeHumidityMessage,
-             pdMS_TO_TICKS(10));
+  float airRelativeHumidity = measure->GetAirRelativeHumidity();
+  if (!isnan(airRelativeHumidity)) {
+    services::MqttMessage *airRelativeHumidityMessage =
+        new services::MqttMessage(
+            TOPIC_MEASUREMENTS_AIR +
+                MQTT_TOPIC_MEASUREMENTS_AIR_RELATIVE_HUMIDITY,
+            airRelativeHumidity);
+    xQueueSend(MqttPublishingEventQueue, &airRelativeHumidityMessage,
+               pdMS_TO_TICKS(10));
+  }
+
+  float waterFlowRate = measure->GetWaterFlowRate();
+  if (!isnan(waterFlowRate)) {
+    services::MqttMessage *waterFlowRateMessage = new services::MqttMessage(
+        TOPIC_MEASUREMENTS_WATER + MQTT_TOPIC_MEASUREMENTS_WATER_FLOW_RATE,
+        waterFlowRate);
+    xQueueSend(MqttPublishingEventQueue, &waterFlowRateMessage,
+               pdMS_TO_TICKS(10));
+  }
+
+  float waterVolume = measure->GetWaterVolume();
+  if (!isnan(waterVolume)) {
+    services::MqttMessage *waterVolumeMessage = new services::MqttMessage(
+        TOPIC_MEASUREMENTS_WATER + MQTT_TOPIC_MEASUREMENTS_WATER_VOLUME,
+        waterVolume);
+    xQueueSend(MqttPublishingEventQueue, &waterVolumeMessage,
+               pdMS_TO_TICKS(10));
+  }
 
   services::MqttMessage *pumpStateMessage = new services::MqttMessage(
       TOPIC_MEASUREMENTS_PUMP + MQTT_TOPIC_MEASUREMENTS_PUMP_STATE,
@@ -105,13 +136,18 @@ void mqttPublishMeasurementsCallback(measurements::Measures *measure) {
 }
 
 void controlHandling(void *parameter) {
-  control::Controller controller =
-      control::Controller(MEASURING_INTERVAL_MILLISECONDS);
+  peripherals::Dht11 *dht11 = new peripherals::Dht11(DHT11_PIN);
+  peripherals::YfS401 *yfS401 =
+      new peripherals::YfS401(YF_S401_PIN, YF_S401_VOLUME_PER_PULSE);
+
+  control::Controller *controller =
+      new control::Controller(MEASURING_INTERVAL_MILLISECONDS, dht11, yfS401);
 
   services::MqttMessage *mqttMessage;
+  controller->Begin();
 
   while (true) {
-    controller.Loop();
+    controller->Loop();
 
     if (xQueueReceive(MqttSubscriptionEventQueue, &mqttMessage,
                       pdMS_TO_TICKS(10)) == pdPASS) {
@@ -119,13 +155,13 @@ void controlHandling(void *parameter) {
         bool pumpState = String(mqttMessage->GetPayload()) == "1";
         logging::logger->Debug("Processing pump control request. Operation: " +
                                String(pumpState ? "ON" : "OFF"));
-        controller.StartPump(pumpState);
+        controller->StartPump(pumpState);
       }
       delete mqttMessage;
     }
 
-    if (controller.IsMeasurementTimeReached()) {
-      measurements::Measures measure = controller.Measure();
+    if (controller->IsMeasurementTimeReached()) {
+      measurements::Measures measure = controller->Measure();
       mqttPublishMeasurementsCallback(&measure);
     }
   }
@@ -137,7 +173,7 @@ void setup() {
   xTaskCreatePinnedToCore(controlHandling, "controlHandling", 10000, NULL, 1,
                           &ControlHandlingTask, 1);
 
-  MqttPublishingEventQueue = xQueueCreate(2, sizeof(services::MqttMessage *));
+  MqttPublishingEventQueue = xQueueCreate(4, sizeof(services::MqttMessage *));
   MqttSubscriptionEventQueue = xQueueCreate(1, sizeof(services::MqttMessage *));
 }
 
