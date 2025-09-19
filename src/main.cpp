@@ -7,6 +7,7 @@
 
 #include "controller.h"
 #include "dht11.h"
+#include "sen0193.h"
 #include "yf_s401.h"
 
 #include "logger.h"
@@ -30,6 +31,9 @@ String TOPIC_MEASUREMENTS_PUMP = String(MQTT_TOPIC_BASE) +
 String TOPIC_MEASUREMENTS_AIR = String(MQTT_TOPIC_BASE) +
                                 String(MQTT_TOPIC_MEASUREMENTS) +
                                 String(MQTT_TOPIC_MEASUREMENTS_AIR);
+String TOPIC_MEASUREMENTS_SOIL = String(MQTT_TOPIC_BASE) +
+                                 String(MQTT_TOPIC_MEASUREMENTS) +
+                                 String(MQTT_TOPIC_MEASUREMENTS_SOIL);
 String TOPIC_MEASUREMENTS_WATER = String(MQTT_TOPIC_BASE) +
                                   String(MQTT_TOPIC_MEASUREMENTS) +
                                   String(MQTT_TOPIC_MEASUREMENTS_WATER);
@@ -90,8 +94,8 @@ void networksHandling(void *parameter) {
   }
 }
 
-void mqttPublishMeasurementsCallback(measurements::Measures *measure) {
-  float airTemperature = measure->GetAirTemperature();
+void mqttPublishMeasurementsCallback(control::Measures *measure) {
+  float airTemperature = measure->GetAirProperties().GetTemperature();
   if (!isnan(airTemperature)) {
     services::MqttMessage *airTemperatureMessage = new services::MqttMessage(
         TOPIC_MEASUREMENTS_AIR + MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
@@ -100,7 +104,7 @@ void mqttPublishMeasurementsCallback(measurements::Measures *measure) {
                pdMS_TO_TICKS(10));
   }
 
-  float airRelativeHumidity = measure->GetAirRelativeHumidity();
+  float airRelativeHumidity = measure->GetAirProperties().GetRelativeHumidity();
   if (!isnan(airRelativeHumidity)) {
     services::MqttMessage *airRelativeHumidityMessage =
         new services::MqttMessage(
@@ -111,7 +115,7 @@ void mqttPublishMeasurementsCallback(measurements::Measures *measure) {
                pdMS_TO_TICKS(10));
   }
 
-  float waterFlowRate = measure->GetWaterFlowRate();
+  float waterFlowRate = measure->GetWaterFlowRate().GetFlowRate();
   if (!isnan(waterFlowRate)) {
     services::MqttMessage *waterFlowRateMessage = new services::MqttMessage(
         TOPIC_MEASUREMENTS_WATER + MQTT_TOPIC_MEASUREMENTS_WATER_FLOW_RATE,
@@ -120,12 +124,21 @@ void mqttPublishMeasurementsCallback(measurements::Measures *measure) {
                pdMS_TO_TICKS(10));
   }
 
-  float waterVolume = measure->GetWaterVolume();
-  if (!isnan(waterVolume)) {
-    services::MqttMessage *waterVolumeMessage = new services::MqttMessage(
-        TOPIC_MEASUREMENTS_WATER + MQTT_TOPIC_MEASUREMENTS_WATER_VOLUME,
-        waterVolume);
-    xQueueSend(MqttPublishingEventQueue, &waterVolumeMessage,
+  String soilMoistureLevel = measure->GetSoilMoisture().GetLevelString();
+  if (!soilMoistureLevel.isEmpty()) {
+    services::MqttMessage *soilMoistureLevelMessage = new services::MqttMessage(
+        TOPIC_MEASUREMENTS_SOIL + MQTT_TOPIC_MEASUREMENTS_SOIL_MOISTURE_LEVEL,
+        soilMoistureLevel);
+    xQueueSend(MqttPublishingEventQueue, &soilMoistureLevelMessage,
+               pdMS_TO_TICKS(10));
+  }
+
+  float soilMoisture = measure->GetSoilMoisture().GetMoisture();
+  if (!isnan(soilMoisture)) {
+    services::MqttMessage *soilMoistureMessage = new services::MqttMessage(
+        TOPIC_MEASUREMENTS_SOIL + MQTT_TOPIC_MEASUREMENTS_SOIL_MOISTURE,
+        soilMoisture);
+    xQueueSend(MqttPublishingEventQueue, &soilMoistureMessage,
                pdMS_TO_TICKS(10));
   }
 
@@ -139,9 +152,11 @@ void controlHandling(void *parameter) {
   peripherals::Dht11 *dht11 = new peripherals::Dht11(DHT11_PIN);
   peripherals::YfS401 *yfS401 =
       new peripherals::YfS401(YF_S401_PIN, YF_S401_VOLUME_PER_PULSE);
+  peripherals::Sen0193 *sen0193 = new peripherals::Sen0193(
+      SEN0193_PIN, SEN0193_WATER_VALUE, SEN0193_AIR_VALUE);
 
-  control::Controller *controller =
-      new control::Controller(MEASURING_INTERVAL_MILLISECONDS, dht11, yfS401);
+  control::Controller *controller = new control::Controller(
+      MEASURING_INTERVAL_MILLISECONDS, dht11, yfS401, sen0193);
 
   services::MqttMessage *mqttMessage;
   controller->Begin();
@@ -161,7 +176,7 @@ void controlHandling(void *parameter) {
     }
 
     if (controller->IsMeasurementTimeReached()) {
-      measurements::Measures measure = controller->Measure();
+      control::Measures measure = controller->Measure();
       mqttPublishMeasurementsCallback(&measure);
     }
   }
