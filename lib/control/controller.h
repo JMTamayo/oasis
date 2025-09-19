@@ -1,12 +1,34 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include "measures.h"
-
 #include "dht11.h"
+#include "sen0193.h"
 #include "yf_s401.h"
 
 namespace control {
+
+class Measures {
+private:
+  peripherals::AirProperties airProperties;
+  peripherals::FlowRate waterFlowRate;
+  peripherals::SoilMoisture soilMoisture;
+  bool pumpState;
+
+public:
+  Measures(peripherals::AirProperties airProperties,
+           peripherals::FlowRate waterFlowRate,
+           peripherals::SoilMoisture soilMoisture, bool pumpState);
+
+  ~Measures();
+
+  peripherals::AirProperties GetAirProperties();
+
+  peripherals::FlowRate GetWaterFlowRate();
+
+  peripherals::SoilMoisture GetSoilMoisture();
+
+  bool GetPumpState();
+};
 
 class Controller {
 private:
@@ -15,6 +37,7 @@ private:
 
   peripherals::Dht11 *dht11;
   peripherals::YfS401 *yfS401;
+  peripherals::Sen0193 *sen0193;
 
   const unsigned long getIntervalMs() const;
 
@@ -26,15 +49,17 @@ private:
 
   peripherals::YfS401 *getYfS401();
 
+  peripherals::Sen0193 *getSen0193();
+
 public:
   Controller(unsigned long intervalMs, peripherals::Dht11 *dht11,
-             peripherals::YfS401 *yfS401);
+             peripherals::YfS401 *yfS401, peripherals::Sen0193 *sen0193);
 
   ~Controller();
 
   bool IsMeasurementTimeReached();
 
-  measurements::Measures Measure();
+  Measures Measure();
 
   void StartPump(bool state);
 
