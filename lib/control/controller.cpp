@@ -60,7 +60,7 @@ Measures Controller::Measure() {
   peripherals::FlowRate waterFlowRate = this->getYfS401()->Read();
   peripherals::SoilMoisture soilMoisture = this->getSen0193()->Read();
 
-  bool pumpState = true; // TODO: Implement measure pump state
+  bool pumpState = false; // TODO: Implement measure pump state
 
   this->setLastMeasurementTimeMs(millis());
 
