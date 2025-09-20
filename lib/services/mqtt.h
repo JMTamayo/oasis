@@ -2,6 +2,9 @@
 #define MQTT_H
 
 #include <PubSubClient.h>
+#include <WiFi.h>
+
+#include "logger.h"
 
 namespace services {
 

@@ -5,20 +5,23 @@
 #include "parameters.h"
 #include "secrets.h"
 
+#include "logger.h"
+
 #include "controller.h"
 #include "dht11.h"
 #include "sen0193.h"
 #include "yf_s401.h"
 
-#include "logger.h"
+#include "geolocation.h"
 #include "mqtt.h"
 #include "wifi_.h"
 
-TaskHandle_t NetworksHandlingTask;
+TaskHandle_t ServerHandlingTask;
+TaskHandle_t GeolocationHandlingTask;
 TaskHandle_t ControlHandlingTask;
 
 QueueHandle_t MqttPublishingEventQueue;
-QueueHandle_t MqttSubscriptionEventQueue;
+QueueHandle_t MqttSubscriptionsEventQueue;
 
 String TOPIC_CONTROL = String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_CONTROL);
 String TOPIC_CONTROL_PUMP = String(MQTT_TOPIC_BASE) +
@@ -37,6 +40,8 @@ String TOPIC_MEASUREMENTS_SOIL = String(MQTT_TOPIC_BASE) +
 String TOPIC_MEASUREMENTS_WATER = String(MQTT_TOPIC_BASE) +
                                   String(MQTT_TOPIC_MEASUREMENTS) +
                                   String(MQTT_TOPIC_MEASUREMENTS_WATER);
+String TOPIC_GEOLOCATION =
+    String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_MEASUREMENTS_GEOLOCATION);
 
 void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
   String topicStr = topic;
@@ -50,7 +55,7 @@ void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
       (payloadString == "0" || payloadString == "1")) {
     logging::logger->Debug("Received message from MQTT server. Topic: " +
                            topicStr + ". Payload: " + payloadString);
-    xQueueSend(MqttSubscriptionEventQueue, &mqttMessage, pdMS_TO_TICKS(200));
+    xQueueSend(MqttSubscriptionsEventQueue, &mqttMessage, pdMS_TO_TICKS(200));
 
   } else {
     logging::logger->Error(
@@ -59,19 +64,17 @@ void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
   }
 }
 
-void networksHandling(void *parameter) {
-  WiFiClient *espClient = new WiFiClient();
-  PubSubClient *mqttClient = new PubSubClient(*espClient);
-
-  mqttClient->setCallback(mqttSubscriptionCallback);
-
+void serverHandling(void *parameter) {
   services::WifiService *wifi = new services::WifiService(
       WIFI_SSID, WIFI_PASSWORD, WIFI_MAX_RETRY_TIME_MILLISECONDS);
+
+  WiFiClient *espClient = new WiFiClient();
+  PubSubClient *mqttClient = new PubSubClient(*espClient);
+  mqttClient->setCallback(mqttSubscriptionCallback);
 
   services::MqttService *mqtt = new services::MqttService(
       MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, MQTT_CLIENT_ID,
       MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient);
-
   services::MqttMessage *mqttMessage;
 
   while (true) {
@@ -94,6 +97,26 @@ void networksHandling(void *parameter) {
   }
 }
 
+void geolocationHandling(void *parameter) {
+  services::Geolocation *geolocation = new services::Geolocation(
+      GEOLOCATION_REQUEST_URL, GEOLOCATION_REQUEST_TIMEOUT_MILLISECONDS,
+      GEOLOCATION_INTERVAL_MILLISECONDS);
+
+  while (true) {
+    if (geolocation->IsLocalizationTimeReached()) {
+      String localization = geolocation->Localize();
+      if (!localization.isEmpty()) {
+        services::MqttMessage *localizationMessage =
+            new services::MqttMessage(TOPIC_GEOLOCATION, localization);
+        xQueueSend(MqttPublishingEventQueue, &localizationMessage,
+                   pdMS_TO_TICKS(10));
+      }
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
+
 void controlHandling(void *parameter) {
   peripherals::Dht11 *dht11 = new peripherals::Dht11(DHT11_PIN);
   peripherals::YfS401 *yfS401 =
@@ -110,7 +133,7 @@ void controlHandling(void *parameter) {
   while (true) {
     controller->Loop();
 
-    if (xQueueReceive(MqttSubscriptionEventQueue, &mqttMessage,
+    if (xQueueReceive(MqttSubscriptionsEventQueue, &mqttMessage,
                       pdMS_TO_TICKS(10)) == pdPASS) {
       if (String(mqttMessage->GetTopic()) == TOPIC_CONTROL_PUMP) {
         bool pumpState = String(mqttMessage->GetPayload()) == "1";
@@ -186,13 +209,16 @@ void controlHandling(void *parameter) {
 }
 
 void setup() {
-  xTaskCreatePinnedToCore(networksHandling, "networksHandling", 10000, NULL, 1,
-                          &NetworksHandlingTask, 0);
+  xTaskCreatePinnedToCore(serverHandling, "serverHandling", 10000, NULL, 1,
+                          &ServerHandlingTask, 0);
+  xTaskCreatePinnedToCore(geolocationHandling, "geolocationHandling", 10000,
+                          NULL, 0, &GeolocationHandlingTask, 0);
   xTaskCreatePinnedToCore(controlHandling, "controlHandling", 10000, NULL, 1,
                           &ControlHandlingTask, 1);
 
-  MqttPublishingEventQueue = xQueueCreate(4, sizeof(services::MqttMessage *));
-  MqttSubscriptionEventQueue = xQueueCreate(1, sizeof(services::MqttMessage *));
+  MqttPublishingEventQueue = xQueueCreate(7, sizeof(services::MqttMessage *));
+  MqttSubscriptionsEventQueue =
+      xQueueCreate(1, sizeof(services::MqttMessage *));
 }
 
 void loop() {}

@@ -11,4 +11,6 @@ You should include a `secrets.h` file in the `./include` directory with the foll
     MQTT_USER
     MQTT_PASSWORD
     MQTT_CLIENT_ID
+
+    GEOLOCATION_REQUEST_URL
 ```

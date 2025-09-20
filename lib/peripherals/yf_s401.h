@@ -1,6 +1,8 @@
 #ifndef YF_S401_H
 #define YF_S401_H
 
+#include <Arduino.h>
+
 namespace peripherals {
 
 class FlowRate {

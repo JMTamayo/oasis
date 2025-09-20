@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 #include "yf_s401.h"
 
 namespace peripherals {

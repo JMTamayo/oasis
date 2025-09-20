@@ -1,6 +1,3 @@
-#include <WiFi.h>
-
-#include "logger.h"
 #include "wifi_.h"
 
 namespace services {
