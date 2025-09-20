@@ -1,7 +1,3 @@
-#include <PubSubClient.h>
-#include <WiFi.h>
-
-#include "logger.h"
 #include "mqtt.h"
 
 namespace services {

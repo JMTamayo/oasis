@@ -1,8 +1,4 @@
-#include <Arduino.h>
-
 #include "sen0193.h"
-
-#include "logger.h"
 
 namespace peripherals {
 

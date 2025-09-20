@@ -1,6 +1,8 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#include <Arduino.h>
+
 #include "dht11.h"
 #include "sen0193.h"
 #include "yf_s401.h"

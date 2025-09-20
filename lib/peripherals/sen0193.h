@@ -1,6 +1,10 @@
 #ifndef SEN0193_H
 #define SEN0193_H
 
+#include <Arduino.h>
+
+#include "logger.h"
+
 namespace peripherals {
 
 enum SoilMoistureLevel {

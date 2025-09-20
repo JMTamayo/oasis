@@ -1,5 +1,3 @@
-#include <DHT.h>
-
 #include "dht11.h"
 
 namespace peripherals {

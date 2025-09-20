@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 #include "logger.h"
 
 namespace logging {
@@ -12,8 +10,8 @@ Logger::~Logger() {}
 
 void Logger::initialize() {
   Serial.begin(this->getBaudRate());
-  while (!Serial) {
-  }
+  while (!Serial)
+    continue;
 }
 
 void Logger::Error(String message) {

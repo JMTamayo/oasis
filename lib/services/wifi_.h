@@ -1,6 +1,10 @@
 #ifndef WIFI_H
 #define WIFI_H
 
+#include <WiFi.h>
+
+#include "logger.h"
+
 namespace services {
 
 class WifiService {
