@@ -94,60 +94,6 @@ void networksHandling(void *parameter) {
   }
 }
 
-void mqttPublishMeasurementsCallback(control::Measures *measure) {
-  float airTemperature = measure->GetAirProperties().GetTemperature();
-  if (!isnan(airTemperature)) {
-    services::MqttMessage *airTemperatureMessage = new services::MqttMessage(
-        TOPIC_MEASUREMENTS_AIR + MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
-        airTemperature);
-    xQueueSend(MqttPublishingEventQueue, &airTemperatureMessage,
-               pdMS_TO_TICKS(10));
-  }
-
-  float airRelativeHumidity = measure->GetAirProperties().GetRelativeHumidity();
-  if (!isnan(airRelativeHumidity)) {
-    services::MqttMessage *airRelativeHumidityMessage =
-        new services::MqttMessage(
-            TOPIC_MEASUREMENTS_AIR +
-                MQTT_TOPIC_MEASUREMENTS_AIR_RELATIVE_HUMIDITY,
-            airRelativeHumidity);
-    xQueueSend(MqttPublishingEventQueue, &airRelativeHumidityMessage,
-               pdMS_TO_TICKS(10));
-  }
-
-  float waterFlowRate = measure->GetWaterFlowRate().GetFlowRate();
-  if (!isnan(waterFlowRate)) {
-    services::MqttMessage *waterFlowRateMessage = new services::MqttMessage(
-        TOPIC_MEASUREMENTS_WATER + MQTT_TOPIC_MEASUREMENTS_WATER_FLOW_RATE,
-        waterFlowRate);
-    xQueueSend(MqttPublishingEventQueue, &waterFlowRateMessage,
-               pdMS_TO_TICKS(10));
-  }
-
-  String soilMoistureLevel = measure->GetSoilMoisture().GetLevelString();
-  if (!soilMoistureLevel.isEmpty()) {
-    services::MqttMessage *soilMoistureLevelMessage = new services::MqttMessage(
-        TOPIC_MEASUREMENTS_SOIL + MQTT_TOPIC_MEASUREMENTS_SOIL_MOISTURE_LEVEL,
-        soilMoistureLevel);
-    xQueueSend(MqttPublishingEventQueue, &soilMoistureLevelMessage,
-               pdMS_TO_TICKS(10));
-  }
-
-  float soilMoisture = measure->GetSoilMoisture().GetMoisture();
-  if (!isnan(soilMoisture)) {
-    services::MqttMessage *soilMoistureMessage = new services::MqttMessage(
-        TOPIC_MEASUREMENTS_SOIL + MQTT_TOPIC_MEASUREMENTS_SOIL_MOISTURE,
-        soilMoisture);
-    xQueueSend(MqttPublishingEventQueue, &soilMoistureMessage,
-               pdMS_TO_TICKS(10));
-  }
-
-  services::MqttMessage *pumpStateMessage = new services::MqttMessage(
-      TOPIC_MEASUREMENTS_PUMP + MQTT_TOPIC_MEASUREMENTS_PUMP_STATE,
-      measure->GetPumpState());
-  xQueueSend(MqttPublishingEventQueue, &pumpStateMessage, pdMS_TO_TICKS(10));
-}
-
 void controlHandling(void *parameter) {
   peripherals::Dht11 *dht11 = new peripherals::Dht11(DHT11_PIN);
   peripherals::YfS401 *yfS401 =
@@ -177,7 +123,64 @@ void controlHandling(void *parameter) {
 
     if (controller->IsMeasurementTimeReached()) {
       control::Measures measure = controller->Measure();
-      mqttPublishMeasurementsCallback(&measure);
+
+      float airTemperature = measure.GetAirProperties().GetTemperature();
+      if (!isnan(airTemperature)) {
+        services::MqttMessage *airTemperatureMessage =
+            new services::MqttMessage(
+                TOPIC_MEASUREMENTS_AIR +
+                    MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
+                airTemperature);
+        xQueueSend(MqttPublishingEventQueue, &airTemperatureMessage,
+                   pdMS_TO_TICKS(10));
+      }
+
+      float airRelativeHumidity =
+          measure.GetAirProperties().GetRelativeHumidity();
+      if (!isnan(airRelativeHumidity)) {
+        services::MqttMessage *airRelativeHumidityMessage =
+            new services::MqttMessage(
+                TOPIC_MEASUREMENTS_AIR +
+                    MQTT_TOPIC_MEASUREMENTS_AIR_RELATIVE_HUMIDITY,
+                airRelativeHumidity);
+        xQueueSend(MqttPublishingEventQueue, &airRelativeHumidityMessage,
+                   pdMS_TO_TICKS(10));
+      }
+
+      float waterFlowRate = measure.GetWaterFlowRate().GetFlowRate();
+      if (!isnan(waterFlowRate)) {
+        services::MqttMessage *waterFlowRateMessage = new services::MqttMessage(
+            TOPIC_MEASUREMENTS_WATER + MQTT_TOPIC_MEASUREMENTS_WATER_FLOW_RATE,
+            waterFlowRate);
+        xQueueSend(MqttPublishingEventQueue, &waterFlowRateMessage,
+                   pdMS_TO_TICKS(10));
+      }
+
+      String soilMoistureLevel = measure.GetSoilMoisture().GetLevelString();
+      if (!soilMoistureLevel.isEmpty()) {
+        services::MqttMessage *soilMoistureLevelMessage =
+            new services::MqttMessage(
+                TOPIC_MEASUREMENTS_SOIL +
+                    MQTT_TOPIC_MEASUREMENTS_SOIL_MOISTURE_LEVEL,
+                soilMoistureLevel);
+        xQueueSend(MqttPublishingEventQueue, &soilMoistureLevelMessage,
+                   pdMS_TO_TICKS(10));
+      }
+
+      float soilMoisture = measure.GetSoilMoisture().GetMoisture();
+      if (!isnan(soilMoisture)) {
+        services::MqttMessage *soilMoistureMessage = new services::MqttMessage(
+            TOPIC_MEASUREMENTS_SOIL + MQTT_TOPIC_MEASUREMENTS_SOIL_MOISTURE,
+            soilMoisture);
+        xQueueSend(MqttPublishingEventQueue, &soilMoistureMessage,
+                   pdMS_TO_TICKS(10));
+      }
+
+      services::MqttMessage *pumpStateMessage = new services::MqttMessage(
+          TOPIC_MEASUREMENTS_PUMP + MQTT_TOPIC_MEASUREMENTS_PUMP_STATE,
+          measure.GetPumpState());
+      xQueueSend(MqttPublishingEventQueue, &pumpStateMessage,
+                 pdMS_TO_TICKS(10));
     }
   }
 }
