@@ -8,9 +8,12 @@
 #include "logger.h"
 
 #include "controller.h"
-#include "dht11.h"
+#include "measurements.h"
+
+#include "dht22.h"
+#include "lcd1602_i2c.h"
+#include "led.h"
 #include "sen0193.h"
-#include "yf_s401.h"
 
 #include "geolocation.h"
 #include "mqtt.h"
@@ -23,25 +26,20 @@ TaskHandle_t ControlHandlingTask;
 QueueHandle_t MqttPublishingEventQueue;
 QueueHandle_t MqttSubscriptionsEventQueue;
 
-String TOPIC_CONTROL = String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_CONTROL);
-String TOPIC_CONTROL_PUMP = String(MQTT_TOPIC_BASE) +
-                            String(MQTT_TOPIC_CONTROL) +
-                            String(MQTT_TOPIC_CONTROL_PUMP);
+String TOPIC_AIR_TEMPERATURE =
+    String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_AIR_TEMPERATURE);
 
-String TOPIC_MEASUREMENTS_PUMP = String(MQTT_TOPIC_BASE) +
-                                 String(MQTT_TOPIC_MEASUREMENTS) +
-                                 String(MQTT_TOPIC_MEASUREMENTS_PUMP);
-String TOPIC_MEASUREMENTS_AIR = String(MQTT_TOPIC_BASE) +
-                                String(MQTT_TOPIC_MEASUREMENTS) +
-                                String(MQTT_TOPIC_MEASUREMENTS_AIR);
-String TOPIC_MEASUREMENTS_SOIL = String(MQTT_TOPIC_BASE) +
-                                 String(MQTT_TOPIC_MEASUREMENTS) +
-                                 String(MQTT_TOPIC_MEASUREMENTS_SOIL);
-String TOPIC_MEASUREMENTS_WATER = String(MQTT_TOPIC_BASE) +
-                                  String(MQTT_TOPIC_MEASUREMENTS) +
-                                  String(MQTT_TOPIC_MEASUREMENTS_WATER);
+String TOPIC_AIR_RELATIVE_HUMIDITY =
+    String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_AIR_RELATIVE_HUMIDITY);
+
+String TOPIC_SOIL_MOISTURE =
+    String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_SOIL_MOISTURE);
+
 String TOPIC_GEOLOCATION =
-    String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_MEASUREMENTS_GEOLOCATION);
+    String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_GEOLOCATION);
+
+String TOPIC_CONTROL_PUMP =
+    String(MQTT_TOPIC_BASE) + String(MQTT_TOPIC_CONTROL_PUMP);
 
 void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
   String topicStr = topic;
@@ -56,11 +54,10 @@ void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
     logging::logger->Debug("Received message from MQTT server. Topic: " +
                            topicStr + ". Payload: " + payloadString);
     xQueueSend(MqttSubscriptionsEventQueue, &mqttMessage, pdMS_TO_TICKS(200));
-
   } else {
-    logging::logger->Error(
-        "Received invalid message from MQTT server. Topic: " + topicStr +
-        ". Payload: " + payloadString);
+    logging::logger->Debug(
+        "Received unimplemented message from MQTT server. Topic: " + topicStr +
+        ". Payload: " + payloadString + ". Ignoring message.");
   }
 }
 
@@ -82,8 +79,8 @@ void serverHandling(void *parameter) {
       wifi->Connect();
 
     } else if (!mqtt->IsConnected()) {
-      mqtt->Connect();
-      mqtt->Subscribe((TOPIC_CONTROL + "/#").c_str());
+      if (mqtt->Connect())
+        mqtt->Subscribe((TOPIC_CONTROL_PUMP).c_str());
 
     } else {
       mqtt->Loop();
@@ -94,6 +91,8 @@ void serverHandling(void *parameter) {
         delete mqttMessage;
       }
     }
+
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
 
@@ -112,23 +111,28 @@ void geolocationHandling(void *parameter) {
                    pdMS_TO_TICKS(10));
       }
     }
-
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
 
 void controlHandling(void *parameter) {
-  peripherals::Dht11 *dht11 = new peripherals::Dht11(DHT11_PIN);
-  peripherals::YfS401 *yfS401 =
-      new peripherals::YfS401(YF_S401_PIN, YF_S401_VOLUME_PER_PULSE);
+  peripherals::Dht22 *dht22 = new peripherals::Dht22(DHT22_PIN);
+  vTaskDelay(pdMS_TO_TICKS(2000));
+
+  peripherals::Lcd1602I2c *lcd1602I2c = new peripherals::Lcd1602I2c(
+      LCD1602I2C_ADDRESS, LCD1602I2C_COLS, LCD1602I2C_ROWS);
+
   peripherals::Sen0193 *sen0193 = new peripherals::Sen0193(
       SEN0193_PIN, SEN0193_WATER_VALUE, SEN0193_AIR_VALUE);
 
-  control::Controller *controller = new control::Controller(
-      MEASURING_INTERVAL_MILLISECONDS, dht11, yfS401, sen0193);
+  peripherals::Led *lowMoistureLedIndicator =
+      new peripherals::Led(LOW_MOISTURE_LED_INDICATOR_PIN);
+
+  control::Controller *controller =
+      new control::Controller(MEASURING_INTERVAL_MILLISECONDS, dht22, sen0193,
+                              lowMoistureLedIndicator, lcd1602I2c);
 
   services::MqttMessage *mqttMessage;
-  controller->Begin();
 
   while (true) {
     controller->Loop();
@@ -147,73 +151,42 @@ void controlHandling(void *parameter) {
     if (controller->IsMeasurementTimeReached()) {
       control::Measures measure = controller->Measure();
 
-      float airTemperature = measure.GetAirProperties().GetTemperature();
+      float airTemperature = measure.GetAirTemperature();
       if (!isnan(airTemperature)) {
         services::MqttMessage *airTemperatureMessage =
-            new services::MqttMessage(
-                TOPIC_MEASUREMENTS_AIR +
-                    MQTT_TOPIC_MEASUREMENTS_AIR_TEMPERATURE,
-                airTemperature);
+            new services::MqttMessage(TOPIC_AIR_TEMPERATURE, airTemperature);
         xQueueSend(MqttPublishingEventQueue, &airTemperatureMessage,
                    pdMS_TO_TICKS(10));
       }
 
-      float airRelativeHumidity =
-          measure.GetAirProperties().GetRelativeHumidity();
+      float airRelativeHumidity = measure.GetAirRelativeHumidity();
       if (!isnan(airRelativeHumidity)) {
         services::MqttMessage *airRelativeHumidityMessage =
-            new services::MqttMessage(
-                TOPIC_MEASUREMENTS_AIR +
-                    MQTT_TOPIC_MEASUREMENTS_AIR_RELATIVE_HUMIDITY,
-                airRelativeHumidity);
+            new services::MqttMessage(TOPIC_AIR_RELATIVE_HUMIDITY,
+                                      airRelativeHumidity);
         xQueueSend(MqttPublishingEventQueue, &airRelativeHumidityMessage,
                    pdMS_TO_TICKS(10));
       }
 
-      float waterFlowRate = measure.GetWaterFlowRate().GetFlowRate();
-      if (!isnan(waterFlowRate)) {
-        services::MqttMessage *waterFlowRateMessage = new services::MqttMessage(
-            TOPIC_MEASUREMENTS_WATER + MQTT_TOPIC_MEASUREMENTS_WATER_FLOW_RATE,
-            waterFlowRate);
-        xQueueSend(MqttPublishingEventQueue, &waterFlowRateMessage,
-                   pdMS_TO_TICKS(10));
-      }
-
-      String soilMoistureLevel = measure.GetSoilMoisture().GetLevelString();
-      if (!soilMoistureLevel.isEmpty()) {
-        services::MqttMessage *soilMoistureLevelMessage =
-            new services::MqttMessage(
-                TOPIC_MEASUREMENTS_SOIL +
-                    MQTT_TOPIC_MEASUREMENTS_SOIL_MOISTURE_LEVEL,
-                soilMoistureLevel);
-        xQueueSend(MqttPublishingEventQueue, &soilMoistureLevelMessage,
-                   pdMS_TO_TICKS(10));
-      }
-
-      float soilMoisture = measure.GetSoilMoisture().GetMoisture();
+      float soilMoisture = measure.GetSoilMoisture();
       if (!isnan(soilMoisture)) {
-        services::MqttMessage *soilMoistureMessage = new services::MqttMessage(
-            TOPIC_MEASUREMENTS_SOIL + MQTT_TOPIC_MEASUREMENTS_SOIL_MOISTURE,
-            soilMoisture);
+        services::MqttMessage *soilMoistureMessage =
+            new services::MqttMessage(TOPIC_SOIL_MOISTURE, soilMoisture);
         xQueueSend(MqttPublishingEventQueue, &soilMoistureMessage,
                    pdMS_TO_TICKS(10));
       }
 
-      services::MqttMessage *pumpStateMessage = new services::MqttMessage(
-          TOPIC_MEASUREMENTS_PUMP + MQTT_TOPIC_MEASUREMENTS_PUMP_STATE,
-          measure.GetPumpState());
-      xQueueSend(MqttPublishingEventQueue, &pumpStateMessage,
-                 pdMS_TO_TICKS(10));
+      vTaskDelay(pdMS_TO_TICKS(100));
     }
   }
 }
 
 void setup() {
-  xTaskCreatePinnedToCore(serverHandling, "serverHandling", 10000, NULL, 1,
+  xTaskCreatePinnedToCore(serverHandling, "serverHandling", 15000, NULL, 1,
                           &ServerHandlingTask, 0);
-  xTaskCreatePinnedToCore(geolocationHandling, "geolocationHandling", 10000,
+  xTaskCreatePinnedToCore(geolocationHandling, "geolocationHandling", 15000,
                           NULL, 0, &GeolocationHandlingTask, 0);
-  xTaskCreatePinnedToCore(controlHandling, "controlHandling", 10000, NULL, 1,
+  xTaskCreatePinnedToCore(controlHandling, "controlHandling", 15000, NULL, 1,
                           &ControlHandlingTask, 1);
 
   MqttPublishingEventQueue = xQueueCreate(7, sizeof(services::MqttMessage *));
