@@ -62,8 +62,8 @@ SoilMoisture Sen0193::Read() {
   const float waterValue = (float)this->getWaterValue();
   const float range = airValue - waterValue;
 
-  float moisture = 1.0f - ((float)value - waterValue) / range;
-  moisture = max(0.0f, min(1.0f, moisture));
+  float moisture =
+      constrain(1.0f - ((float)value - waterValue) / range, 0.0f, 1.0f);
 
   if (moisture <= 0.2f) {
     level = SoilMoistureLevel::EXTREMELY_DRY;

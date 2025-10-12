@@ -65,7 +65,7 @@ public:
 
   ~MqttService();
 
-  void Connect();
+  bool Connect();
 
   bool IsConnected();
 

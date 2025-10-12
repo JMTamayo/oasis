@@ -18,7 +18,6 @@ WifiService::~WifiService() {}
 
 void WifiService::Connect() {
   WiFi.begin(this->getSsid(), this->getPassword());
-
   WiFi.mode(WIFI_STA);
 
   unsigned long startTimeMs = millis();
@@ -31,6 +30,7 @@ void WifiService::Connect() {
       return;
     }
 
+    vTaskDelay(pdMS_TO_TICKS(100));
     retryTimeMs = millis() - startTimeMs;
   }
 

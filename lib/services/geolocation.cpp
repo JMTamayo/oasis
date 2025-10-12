@@ -20,7 +20,7 @@ void Geolocation::setLastLocalizationTimeMs(
 Geolocation::Geolocation(const char *requestUrl,
                          const unsigned long requestTimeoutMs,
                          const unsigned long intervalMs)
-    : intervalMs(intervalMs), lastLocalizationTimeMs(millis()) {
+    : intervalMs(intervalMs), lastLocalizationTimeMs(millis() - intervalMs) {
   HTTPClient *httpClient = new HTTPClient();
 
   httpClient->begin(requestUrl);

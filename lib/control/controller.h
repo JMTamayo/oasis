@@ -3,43 +3,25 @@
 
 #include <Arduino.h>
 
-#include "dht11.h"
+#include "measurements.h"
+
+#include "dht22.h"
+#include "lcd1602_i2c.h"
+#include "led.h"
 #include "sen0193.h"
-#include "yf_s401.h"
 
 namespace control {
-
-class Measures {
-private:
-  peripherals::AirProperties airProperties;
-  peripherals::FlowRate waterFlowRate;
-  peripherals::SoilMoisture soilMoisture;
-  bool pumpState;
-
-public:
-  Measures(peripherals::AirProperties airProperties,
-           peripherals::FlowRate waterFlowRate,
-           peripherals::SoilMoisture soilMoisture, bool pumpState);
-
-  ~Measures();
-
-  peripherals::AirProperties GetAirProperties();
-
-  peripherals::FlowRate GetWaterFlowRate();
-
-  peripherals::SoilMoisture GetSoilMoisture();
-
-  bool GetPumpState();
-};
 
 class Controller {
 private:
   const unsigned long intervalMs;
   unsigned long lastMeasurementTimeMs;
 
-  peripherals::Dht11 *dht11;
-  peripherals::YfS401 *yfS401;
+  peripherals::Dht22 *dht22;
   peripherals::Sen0193 *sen0193;
+
+  peripherals::Led *lowMoistureLedIndicator;
+  peripherals::Lcd1602I2c *lcd1602I2c;
 
   const unsigned long getIntervalMs() const;
 
@@ -47,15 +29,19 @@ private:
 
   void setLastMeasurementTimeMs(const unsigned long lastMeasurementTimeMs);
 
-  peripherals::Dht11 *getDht11();
-
-  peripherals::YfS401 *getYfS401();
+  peripherals::Dht22 *getDht22();
 
   peripherals::Sen0193 *getSen0193();
 
+  peripherals::Led *getLowMoistureLedIndicator();
+
+  peripherals::Lcd1602I2c *getLcd1602I2c();
+
 public:
-  Controller(unsigned long intervalMs, peripherals::Dht11 *dht11,
-             peripherals::YfS401 *yfS401, peripherals::Sen0193 *sen0193);
+  Controller(unsigned long intervalMs, peripherals::Dht22 *dht22,
+             peripherals::Sen0193 *sen0193,
+             peripherals::Led *lowMoistureLedIndicator,
+             peripherals::Lcd1602I2c *lcd1602I2c);
 
   ~Controller();
 
@@ -64,8 +50,6 @@ public:
   Measures Measure();
 
   void StartPump(bool state);
-
-  void Begin();
 
   void Loop();
 };

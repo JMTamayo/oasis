@@ -1,5 +1,5 @@
-#ifndef DHT11_H
-#define DHT11_H
+#ifndef DHT22_H
+#define DHT22_H
 
 #include <DHT.h>
 
@@ -20,20 +20,20 @@ public:
   float GetRelativeHumidity();
 };
 
-class Dht11 {
+class Dht22 {
 private:
   DHT dht;
 
   DHT getDht();
 
 public:
-  Dht11(unsigned int pin);
+  Dht22(unsigned int pin);
 
-  ~Dht11();
+  ~Dht22();
 
   AirProperties Read();
 };
 
 } // namespace peripherals
 
-#endif // DHT11_H
+#endif // DHT22_H
