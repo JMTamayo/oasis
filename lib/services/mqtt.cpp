@@ -54,7 +54,7 @@ MqttService::MqttService(const char *server, const unsigned int port,
 
 MqttService::~MqttService() { delete this->client; }
 
-void MqttService::Connect() {
+bool MqttService::Connect() {
   unsigned long startTimeMs = millis();
   unsigned long retryTimeMs = 0;
 
@@ -67,15 +67,18 @@ void MqttService::Connect() {
     if (retryTimeMs >= this->getMaxRetryTimeMs()) {
       logging::logger->Error("Connection to MQTT server failed. Server: " +
                              String(this->getServer()));
-      return;
+      return false;
     }
 
+    vTaskDelay(pdMS_TO_TICKS(100));
     retryTimeMs = millis() - startTimeMs;
   }
 
   logging::logger->Info(
       "Connected to MQTT server. Server: " + String(this->getServer()) +
       ". Client ID: " + String(this->getClientId()));
+
+  return true;
 }
 
 bool MqttService::IsConnected() { return this->getClient()->connected(); }
