@@ -1,4 +1,4 @@
-#include "dht11.h"
+#include "dht22.h"
 
 namespace peripherals {
 
@@ -11,13 +11,13 @@ float AirProperties::GetTemperature() { return this->temperature; }
 
 float AirProperties::GetRelativeHumidity() { return this->relativeHumidity; }
 
-DHT Dht11::getDht() { return this->dht; }
+DHT Dht22::getDht() { return this->dht; }
 
-Dht11::Dht11(const unsigned int pin) : dht(pin, DHT11) {}
+Dht22::Dht22(const unsigned int pin) : dht(pin, DHT22) { this->dht.begin(); }
 
-Dht11::~Dht11() {}
+Dht22::~Dht22() {}
 
-AirProperties Dht11::Read() {
+AirProperties Dht22::Read() {
   return AirProperties(this->dht.readTemperature(), this->dht.readHumidity());
 }
 
