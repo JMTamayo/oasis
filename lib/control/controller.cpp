@@ -2,28 +2,6 @@
 
 namespace control {
 
-Measures::Measures(peripherals::AirProperties airProperties,
-                   peripherals::FlowRate waterFlowRate,
-                   peripherals::SoilMoisture soilMoisture, bool pumpState)
-    : airProperties(airProperties), waterFlowRate(waterFlowRate),
-      soilMoisture(soilMoisture), pumpState(pumpState) {}
-
-Measures::~Measures() {}
-
-peripherals::AirProperties Measures::GetAirProperties() {
-  return this->airProperties;
-}
-
-peripherals::FlowRate Measures::GetWaterFlowRate() {
-  return this->waterFlowRate;
-}
-
-peripherals::SoilMoisture Measures::GetSoilMoisture() {
-  return this->soilMoisture;
-}
-
-bool Measures::GetPumpState() { return this->pumpState; }
-
 const unsigned long Controller::getIntervalMs() const {
   return this->intervalMs;
 }
@@ -32,9 +10,7 @@ unsigned long Controller::getLastMeasurementTimeMs() const {
   return this->lastMeasurementTimeMs;
 }
 
-peripherals::Dht11 *Controller::getDht11() { return this->dht11; }
-
-peripherals::YfS401 *Controller::getYfS401() { return this->yfS401; }
+peripherals::Dht22 *Controller::getDht22() { return this->dht22; }
 
 peripherals::Sen0193 *Controller::getSen0193() { return this->sen0193; }
 
@@ -43,11 +19,22 @@ void Controller::setLastMeasurementTimeMs(
   this->lastMeasurementTimeMs = lastMeasurementTimeMs;
 }
 
+peripherals::Led *Controller::getLowMoistureLedIndicator() {
+  return this->lowMoistureLedIndicator;
+}
+
+peripherals::Lcd1602I2c *Controller::getLcd1602I2c() {
+  return this->lcd1602I2c;
+}
+
 Controller::Controller(const unsigned long intervalMs,
-                       peripherals::Dht11 *dht11, peripherals::YfS401 *yfS401,
-                       peripherals::Sen0193 *sen0193)
-    : intervalMs(intervalMs), lastMeasurementTimeMs(millis()), dht11(dht11),
-      yfS401(yfS401), sen0193(sen0193) {}
+                       peripherals::Dht22 *dht22, peripherals::Sen0193 *sen0193,
+                       peripherals::Led *lowMoistureLedIndicator,
+                       peripherals::Lcd1602I2c *lcd1602I2c)
+    : intervalMs(intervalMs), lastMeasurementTimeMs(millis() - intervalMs),
+      dht22(dht22), sen0193(sen0193),
+      lowMoistureLedIndicator(lowMoistureLedIndicator), lcd1602I2c(lcd1602I2c) {
+}
 
 Controller::~Controller() {}
 
@@ -56,25 +43,41 @@ bool Controller::IsMeasurementTimeReached() {
 }
 
 Measures Controller::Measure() {
-  peripherals::AirProperties airProperties = this->getDht11()->Read();
-  peripherals::FlowRate waterFlowRate = this->getYfS401()->Read();
-  peripherals::SoilMoisture soilMoisture = this->getSen0193()->Read();
+  peripherals::AirProperties airProperties = this->getDht22()->Read();
+  float airTemperature = airProperties.GetTemperature();
+  float airRelativeHumidity = airProperties.GetRelativeHumidity();
 
-  bool pumpState = false; // TODO: Implement measure pump state
+  peripherals::SoilMoisture soilMoisture = this->getSen0193()->Read();
+  float soilMoistureValue = soilMoisture.GetMoisture();
+  String soilMoistureLevel = soilMoisture.GetLevelString();
+
+  // TODO: Implement tank level measurement
+  float tankLevel = NAN;
+
+  this->getLcd1602I2c()->DisplayProcessStatus(
+      airTemperature, airRelativeHumidity, soilMoistureValue, tankLevel);
 
   this->setLastMeasurementTimeMs(millis());
 
-  return Measures(airProperties, waterFlowRate, soilMoisture, pumpState);
+  return Measures(airTemperature, airRelativeHumidity, soilMoistureValue,
+                  soilMoistureLevel, tankLevel);
 }
 
 void Controller::StartPump(bool state) {
   // TODO: Implement start pump
 }
 
-void Controller::Begin() { this->yfS401->Restart(); }
-
 void Controller::Loop() {
-  // TODO: Implement control loop
+  peripherals::SoilMoisture soilMoisture = this->getSen0193()->Read();
+  float moisture = soilMoisture.GetMoisture();
+  peripherals::SoilMoistureLevel moistureLevel = soilMoisture.GetLevel();
+
+  if (moistureLevel == peripherals::SoilMoistureLevel::EXTREMELY_DRY ||
+      moistureLevel == peripherals::SoilMoistureLevel::DRY) {
+    this->getLowMoistureLedIndicator()->High();
+  } else {
+    this->getLowMoistureLedIndicator()->Low();
+  }
 }
 
 } // namespace control
