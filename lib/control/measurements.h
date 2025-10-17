@@ -11,13 +11,12 @@ private:
   float airRelativeHumidity;
 
   float soilMoisture;
-  String soilMoistureLevel;
 
   float tankLevel;
 
 public:
   Measures(float airTemperature, float airRelativeHumidity, float soilMoisture,
-           String soilMoistureLevel, float tankLevel);
+           float tankLevel);
 
   ~Measures();
 
@@ -26,8 +25,6 @@ public:
   float GetAirRelativeHumidity();
 
   float GetSoilMoisture();
-
-  String GetSoilMoistureLevel();
 
   float GetTankLevel();
 };
