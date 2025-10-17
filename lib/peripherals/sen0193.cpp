@@ -2,31 +2,11 @@
 
 namespace peripherals {
 
-SoilMoisture::SoilMoisture(float moisture, SoilMoistureLevel level)
-    : moisture(moisture), level(level) {}
+SoilMoisture::SoilMoisture(float moisture) : moisture(moisture) {}
 
 SoilMoisture::~SoilMoisture() {}
 
 float SoilMoisture::GetMoisture() { return this->moisture; }
-
-SoilMoistureLevel SoilMoisture::GetLevel() { return this->level; }
-
-String SoilMoisture::GetLevelString() {
-  switch (this->level) {
-  case SoilMoistureLevel::EXTREMELY_DRY:
-    return "EXTREMELY_DRY";
-  case SoilMoistureLevel::DRY:
-    return "DRY";
-  case SoilMoistureLevel::MOIST:
-    return "MOIST";
-  case SoilMoistureLevel::WET:
-    return "WET";
-  case SoilMoistureLevel::SATURATED:
-    return "SATURATED";
-  default:
-    return "UNKNOWN";
-  }
-}
 
 const unsigned int Sen0193::getPin() const { return this->pin; }
 
@@ -54,8 +34,6 @@ Sen0193::Sen0193(const unsigned int pin, unsigned long waterValue,
 Sen0193::~Sen0193() {}
 
 SoilMoisture Sen0193::Read() {
-  SoilMoistureLevel level;
-
   unsigned long value = analogRead(this->getPin());
 
   const float airValue = (float)this->getAirValue();
@@ -63,20 +41,9 @@ SoilMoisture Sen0193::Read() {
   const float range = airValue - waterValue;
 
   float moisture =
+      100.0f *
       constrain(1.0f - ((float)value - waterValue) / range, 0.0f, 1.0f);
 
-  if (moisture <= 0.2f) {
-    level = SoilMoistureLevel::EXTREMELY_DRY;
-  } else if (moisture <= 0.4f) {
-    level = SoilMoistureLevel::DRY;
-  } else if (moisture <= 0.6f) {
-    level = SoilMoistureLevel::MOIST;
-  } else if (moisture <= 0.8f) {
-    level = SoilMoistureLevel::WET;
-  } else {
-    level = SoilMoistureLevel::SATURATED;
-  }
-
-  return SoilMoisture(moisture * 100.0f, level);
+  return SoilMoisture(moisture);
 }
 } // namespace peripherals

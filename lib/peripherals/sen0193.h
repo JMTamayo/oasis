@@ -7,29 +7,16 @@
 
 namespace peripherals {
 
-enum SoilMoistureLevel {
-  EXTREMELY_DRY = 0,
-  DRY = 1,
-  MOIST = 2,
-  WET = 3,
-  SATURATED = 4
-};
-
 class SoilMoisture {
 private:
   float moisture;
-  SoilMoistureLevel level;
 
 public:
-  SoilMoisture(float moisture, SoilMoistureLevel level);
+  SoilMoisture(float moisture);
 
   ~SoilMoisture();
 
   float GetMoisture();
-
-  SoilMoistureLevel GetLevel();
-
-  String GetLevelString();
 };
 
 class Sen0193 {

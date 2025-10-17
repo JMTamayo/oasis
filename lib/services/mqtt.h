@@ -28,9 +28,9 @@ public:
 
   ~MqttMessage();
 
-  const char *GetTopic() const;
+  String GetTopic() const;
 
-  const char *GetPayload() const;
+  String GetPayload() const;
 };
 
 class MqttService {
@@ -71,7 +71,7 @@ public:
 
   void Publish(MqttMessage *message);
 
-  void Subscribe(const char *topic);
+  void Subscribe(String topic);
 
   void Loop();
 };
