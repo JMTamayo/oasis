@@ -2,9 +2,9 @@
 
 namespace services {
 
-const char *MqttMessage::GetTopic() const { return this->topic.c_str(); }
+String MqttMessage::GetTopic() const { return this->topic; }
 
-const char *MqttMessage::GetPayload() const { return this->payload.c_str(); }
+String MqttMessage::GetPayload() const { return this->payload; }
 
 MqttMessage::MqttMessage(String topic, const char *payload)
     : topic(topic), payload(String(payload)) {}
@@ -87,13 +87,13 @@ void MqttService::Publish(MqttMessage *message) {
   logging::logger->Debug("Publishing message to MQTT server. Topic: " +
                          String(message->GetTopic()) +
                          ". Payload: " + String(message->GetPayload()));
-  this->getClient()->publish(message->GetTopic(), message->GetPayload());
+  this->getClient()->publish(message->GetTopic().c_str(),
+                             message->GetPayload().c_str());
 }
 
-void MqttService::Subscribe(const char *topic) {
-  this->getClient()->subscribe(topic);
-  logging::logger->Debug("Subscribed to topic from MQTT server: " +
-                         String(topic));
+void MqttService::Subscribe(String topic) {
+  this->getClient()->subscribe(topic.c_str());
+  logging::logger->Debug("Subscribed to topic from MQTT server: " + topic);
 }
 
 void MqttService::Loop() { this->getClient()->loop(); }
