@@ -10,7 +10,7 @@ Lcd1602I2c::Lcd1602I2c(unsigned int address, unsigned int cols,
 
   this->getLcd()->init();
   this->getLcd()->clear();
-  this->getLcd()->backlight();
+  this->BacklightOn(false);
 }
 
 Lcd1602I2c::~Lcd1602I2c() { delete lcd; }
@@ -35,6 +35,14 @@ void Lcd1602I2c::DisplayProcessStatus(float airTemperature,
   this->getLcd()->setCursor(8, 1);
   this->getLcd()->print("TL:");
   this->getLcd()->print(String(tankLevel, 1));
+}
+
+void Lcd1602I2c::BacklightOn(bool state) {
+  if (state) {
+    this->getLcd()->backlight();
+  } else {
+    this->getLcd()->noBacklight();
+  }
 }
 
 } // namespace peripherals

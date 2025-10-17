@@ -19,6 +19,8 @@ public:
 
   void DisplayProcessStatus(float airTemperature, float airRelativeHumidity,
                             float soilMoisture, float tankLevel);
+
+  void BacklightOn(bool state);
 };
 
 } // namespace peripherals
