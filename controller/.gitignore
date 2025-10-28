@@ -52,3 +52,5 @@ include/secrets.h
 # macOS
 .DS_Store
 
+# Secrets
+secrets.h

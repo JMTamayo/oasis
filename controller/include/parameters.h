@@ -1,5 +1,9 @@
 #define BAUD_RATE 115200
 
-#define COMMAND_DELIMITER ":"
-
 #define LED_PIN 8
+
+#define DHT_PIN 2
+
+#define SEN0193_PIN 1
+#define SEN0193_WATER_VALUE 1250
+#define SEN0193_AIR_VALUE 3300
