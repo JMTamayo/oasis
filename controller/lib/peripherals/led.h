@@ -16,8 +16,6 @@ public:
 
   ~Led();
 
-  void Begin();
-
   void High();
 
   void Low();
