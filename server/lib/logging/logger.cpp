@@ -8,8 +8,10 @@ Logger::Logger() : baudRate(115200) {}
 
 void Logger::Begin() {
   Serial.begin(this->getBaudRate());
-  while (!Serial)
-    continue;
+    while (!Serial)
+      continue;
+
+  this->Info("[LOGGER] Logger initialized successfully");
 }
 
 Logger::~Logger() {}

@@ -3,27 +3,40 @@
 #include "parameters.h"
 #include "secrets.h"
 
+#include "logger.h"
+
+#include "intercom.h"
+
 #include "led.h"
 
-#include "logger.h"
 #include "mqtt.h"
 #include "wifi_.h"
 
-String MQTT_TOPIC_BASE = "/" + String(PROJECT_NAME) + "/" + String(DEVICE_ID);
-
-String MQTT_TOPIC_RESET_CONTROLLER =
-    MQTT_TOPIC_BASE + "/" + String(COMMAND_RESET_CONTROLLER);
-String MQTT_TOPIC_RESET_SERVER =
-    MQTT_TOPIC_BASE + "/" + String(COMMAND_RESET_SERVER);
+intercom::Intercom *comm;
 
 WiFiClient *espClient;
 PubSubClient *mqttClient;
 
+logging::Logger *logger;
+
 peripherals::Led *builtinLed;
 
-logging::Logger *logger;
 services::WifiService *wifi;
 services::MqttService *mqtt;
+
+services::MqttMessage *message;
+
+void resetServer() {
+  logger->Info("[RESET] Resetting server");
+  ESP.restart();
+}
+
+void resetController() {
+  logger->Info("[RESET] Resetting controller");
+  digitalWrite(RESET_CONTROLLER_PIN, LOW);
+  delayMicroseconds(RESET_CONTROLLER_DELAY_MICROSECONDS);
+  digitalWrite(RESET_CONTROLLER_PIN, HIGH);
+}
 
 void mqttCallback(char *topic, byte *payload, unsigned int length) {
   String topicStr = topic;
@@ -33,19 +46,24 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
   logger->Info("[MQTT] Message received. Topic: " + topicStr + ". Payload: " +
                (payloadStr.length() > 0 ? payloadStr : "(empty)"));
 
-  if (topicStr.equals(MQTT_TOPIC_RESET_SERVER)) {
-    ESP.restart();
+  String subject = mqtt->GetSubject(topicStr);
+  if (subject.equals(COMMAND_RESET_SERVER)) {
+    resetServer();
+
+  } else if (subject.equals(COMMAND_RESET_CONTROLLER)) {
+    resetController();
 
   } else {
-    logger->Warning("[MQTT] Received message is not supported. Topic: " +
-                    topicStr);
+    comm->Transmit(subject, payloadStr);
   }
 }
 
 void setup() {
   logger = new logging::Logger();
   logger->Begin();
-  logger->Info("[SETUP] Device setup started");
+
+  pinMode(RESET_CONTROLLER_PIN, OUTPUT);
+  digitalWrite(RESET_CONTROLLER_PIN, HIGH);
 
   builtinLed = new peripherals::Led(BUILTIN_LED_PIN);
   builtinLed->LightUp(!false);
@@ -58,9 +76,15 @@ void setup() {
   mqttClient = new PubSubClient(*espClient);
 
   mqtt = new services::MqttService(
-      MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, DEVICE_ID,
-      MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient, logger, builtinLed);
+      MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, PROJECT_NAME, DEVICE_ID,
+      MQTT_TOPIC_BASE_SEPARATOR, MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient,
+      logger, builtinLed);
   mqttClient->setCallback(mqttCallback);
+
+  comm = new intercom::Intercom(INTERCOM_TX_PIN, INTERCOM_RX_PIN,
+                                INTERCOM_BAUD_RATE, INTERCOM_COMMAND_SEPARATOR,
+                                logger);
+  comm->Begin();
 
   logger->Info("[SETUP] Device setup completed");
 }
@@ -71,10 +95,20 @@ void loop() {
 
   } else if (!mqtt->IsConnected()) {
     mqtt->Connect();
-    mqtt->Subscribe(MQTT_TOPIC_RESET_CONTROLLER);
-    mqtt->Subscribe(MQTT_TOPIC_RESET_SERVER);
+
+    mqtt->Subscribe(COMMAND_RESET_SERVER);
+    mqtt->Subscribe(COMMAND_RESET_CONTROLLER);
+    mqtt->Subscribe(COMMAND_PING);
+    mqtt->Subscribe(COMMAND_SET_SAMPLING_TIME);
+    mqtt->Subscribe(COMMAND_GET_SAMPLING_TIME);
+    mqtt->Subscribe(COMMAND_GET_PENDING_TIME_FOR_SAMPLING);
+    mqtt->Subscribe(COMMAND_GET_MEASUREMENTS);
 
   } else {
     mqtt->Loop();
+
+    message = comm->Loop();
+    if (message != nullptr)
+      mqtt->Publish(message);
   }
 }

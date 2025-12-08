@@ -11,25 +11,25 @@ namespace services {
 
 class MqttMessage {
 private:
-  String topic;
+  String subject;
   String payload;
 
 public:
-  MqttMessage(String topic, const char *payload);
+  MqttMessage(String subject, const char *payload);
 
-  MqttMessage(String topic, String payload);
+  MqttMessage(String subject, String payload);
 
-  MqttMessage(String topic, bool payload);
+  MqttMessage(String subject, bool payload);
 
-  MqttMessage(String topic, float payload);
+  MqttMessage(String subject, float payload);
 
-  MqttMessage(String topic, int payload);
+  MqttMessage(String subject, int payload);
 
-  MqttMessage(String topic, long payload);
+  MqttMessage(String subject, long payload);
 
   ~MqttMessage();
 
-  const char *GetTopic() const;
+  const char *GetSubject() const;
 
   const char *GetPayload() const;
 };
@@ -40,8 +40,11 @@ private:
   const unsigned int port;
   const char *user;
   const char *password;
-  const char *clientId;
   const unsigned long maxRetryTimeMs;
+
+  const char *projectName;
+  const char *deviceId;
+  const char *topicBaseSeparator;
 
   logging::Logger *logger;
   peripherals::Led *led;
@@ -56,9 +59,13 @@ private:
 
   const char *getPassword() const;
 
-  const char *getClientId() const;
-
   const unsigned long getMaxRetryTimeMs() const;
+
+  const char *getProjectName() const;
+
+  const char *getDeviceId() const;
+
+  const char *getTopicBaseSeparator() const;
 
   logging::Logger *getLogger();
 
@@ -66,9 +73,14 @@ private:
 
   PubSubClient *getClient();
 
+  String getBaseTopic() const;
+
+  String getTopic(String subject) const;
+
 public:
   MqttService(const char *server, const unsigned int port, const char *user,
-              const char *password, const char *clientId,
+              const char *password, const char *projectName,
+              const char *deviceId, const char *topicBaseSeparator,
               const unsigned long maxRetryTimeMs, PubSubClient *client,
               logging::Logger *logger, peripherals::Led *led);
 
@@ -80,7 +92,9 @@ public:
 
   void Publish(MqttMessage *message);
 
-  void Subscribe(String topic);
+  void Subscribe(String subject);
+
+  String GetSubject(String topic) const;
 
   void Loop();
 };
