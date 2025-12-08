@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <DHT.h>
 
 #include "parameters.h"
@@ -35,17 +34,17 @@ void getPendingTimeForSampling() {
 }
 
 void measure() {
-  JsonDocument json;
+  float airTemperature = dht->readTemperature();
+  Serial.println(RESPONSE_AIR_TEMPERATURE + String(INTERCOMM_SEPARATOR) +
+                 airTemperature);
 
-  json["air_temperature"] = dht->readTemperature();
-  json["air_humidity"] = dht->readHumidity();
-  json["soil_moisture"] = sen0193->Read();
+  float airHumidity = dht->readHumidity();
+  Serial.println(RESPONSE_AIR_HUMIDITY + String(INTERCOMM_SEPARATOR) +
+                 airHumidity);
 
-  String jsonString;
-  serializeJson(json, jsonString);
-
-  Serial.println(RESPONSE_MEASUREMENTS + String(INTERCOMM_SEPARATOR) +
-                 jsonString);
+  float soilMoisture = sen0193->Read();
+  Serial.println(RESPONSE_SOIL_MOISTURE + String(INTERCOMM_SEPARATOR) +
+                 soilMoisture);
 }
 
 void getMeasurements() {
