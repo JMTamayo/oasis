@@ -13,7 +13,9 @@
 #define RESPONSE_PONG "pong"
 #define RESPONSE_SAMPLING_TIME "sampling-time"
 #define RESPONSE_PENDING_TIME_FOR_SAMPLING "pending-time-for-sampling"
-#define RESPONSE_MEASUREMENTS "measurements"
+#define RESPONSE_AIR_TEMPERATURE "air-temperature"
+#define RESPONSE_AIR_HUMIDITY "air-humidity"
+#define RESPONSE_SOIL_MOISTURE "soil-moisture"
 
 #define DEFAULT_SAMPLING_TIME_MS 2000
 #define MIN_SAMPLING_TIME_MS 2000
