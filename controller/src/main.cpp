@@ -9,7 +9,8 @@
 DHT *dht;
 
 peripherals::Led *builtinLed;
-peripherals::Sen0193 *sen0193;
+peripherals::Sen0193 *sen0193_1;
+peripherals::Sen0193 *sen0193_2;
 
 unsigned long lastMeasurementTime;
 unsigned long samplingTime;
@@ -42,9 +43,17 @@ void measure() {
   Serial.println(RESPONSE_AIR_HUMIDITY + String(INTERCOMM_SEPARATOR) +
                  airHumidity);
 
-  float soilMoisture = sen0193->Read();
-  Serial.println(RESPONSE_SOIL_MOISTURE + String(INTERCOMM_SEPARATOR) +
-                 soilMoisture);
+  float soilMoisture_1 = sen0193_1->Read();
+  Serial.println(RESPONSE_SOIL_MOISTURE_1 + String(INTERCOMM_SEPARATOR) +
+                 soilMoisture_1);
+
+  float soilMoisture_2 = sen0193_2->Read();
+  Serial.println(RESPONSE_SOIL_MOISTURE_2 + String(INTERCOMM_SEPARATOR) +
+                 soilMoisture_2);
+
+  float averageSoilMoisture = (soilMoisture_1 + soilMoisture_2) / 2;
+  Serial.println(RESPONSE_AVERAGE_SOIL_MOISTURE + String(INTERCOMM_SEPARATOR) +
+                 averageSoilMoisture);
 }
 
 void getMeasurements() {
@@ -122,8 +131,12 @@ void setup() {
   dht = new DHT(DHT_PIN, DHT_TYPE);
   dht->begin();
 
-  sen0193 = new peripherals::Sen0193(SEN0193_PIN, DEVICE_ANALOG_READ_RESOLUTION,
-                                     SEN0193_WATER_VALUE, SEN0193_AIR_VALUE);
+  sen0193_1 =
+      new peripherals::Sen0193(SEN0193_1_PIN, DEVICE_ANALOG_READ_RESOLUTION,
+                               SEN0193_1_WATER_VALUE, SEN0193_1_AIR_VALUE);
+  sen0193_2 =
+      new peripherals::Sen0193(SEN0193_2_PIN, DEVICE_ANALOG_READ_RESOLUTION,
+                               SEN0193_2_WATER_VALUE, SEN0193_2_AIR_VALUE);
 
   samplingTime = DEFAULT_SAMPLING_TIME_MS;
   lastMeasurementTime = millis();
