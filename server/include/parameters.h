@@ -1,6 +1,8 @@
-// Configuration parameters to handle WiFi and MQTT:
+// Configuration parameters to handle WiFi, MQTT and Geolocation:
 #define WIFI_MAX_RETRY_TIME_MILLISECONDS 5000
 #define MQTT_MAX_RETRY_TIME_MILLISECONDS 5000
+#define GEOLOCATION_INTERVAL_MILLISECONDS 60000
+#define GEOLOCATION_REQUEST_TIMEOUT_MILLISECONDS 1000
 
 // Configuration parameters to handle the built-in LED:
 #define BUILTIN_LED_PIN 8
@@ -23,7 +25,6 @@
 // Configuration parameters to handle the communication with the controller via
 // serial UART:
 #define INTERCOM_COMMAND_SEPARATOR ":"
-
 #define INTERCOM_TX_PIN 3
 #define INTERCOM_RX_PIN 2
 #define INTERCOM_BAUD_RATE 9600

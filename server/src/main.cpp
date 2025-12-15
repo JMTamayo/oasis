@@ -9,6 +9,7 @@
 
 #include "led.h"
 
+#include "geolocation.h"
 #include "mqtt.h"
 #include "wifi_.h"
 
@@ -21,6 +22,7 @@ logging::Logger *logger;
 
 peripherals::Led *builtinLed;
 
+services::Geolocation *geolocation;
 services::WifiService *wifi;
 services::MqttService *mqtt;
 
@@ -81,6 +83,10 @@ void setup() {
       logger, builtinLed);
   mqttClient->setCallback(mqttCallback);
 
+  geolocation = new services::Geolocation(
+      GEOLOCATION_REQUEST_URL, GEOLOCATION_REQUEST_TIMEOUT_MILLISECONDS,
+      GEOLOCATION_INTERVAL_MILLISECONDS, logger);
+
   comm = new intercom::Intercom(INTERCOM_TX_PIN, INTERCOM_RX_PIN,
                                 INTERCOM_BAUD_RATE, INTERCOM_COMMAND_SEPARATOR,
                                 logger);
@@ -108,6 +114,10 @@ void loop() {
     mqtt->Loop();
 
     message = comm->Loop();
+    if (message != nullptr)
+      mqtt->Publish(message);
+
+    message = geolocation->Loop();
     if (message != nullptr)
       mqtt->Publish(message);
   }
