@@ -90,9 +90,9 @@ bool MqttService::Connect() {
     }
 
     if (retryTimeMs >= this->getMaxRetryTimeMs()) {
-      this->getLogger()->Error(
-          "[MQTT] Connection to MQTT server failed. Server: " +
-          String(this->getServer()));
+      this->getLogger()->Error("MQTT",
+                               "Connection to MQTT server failed. Server: " +
+                                   String(this->getServer()));
       return false;
     }
 
@@ -100,8 +100,8 @@ bool MqttService::Connect() {
   }
 
   this->getLogger()->Info(
-      "[MQTT] Connected to MQTT server. Server: " + String(this->getServer()) +
-      ". Client ID: " + String(this->getDeviceId()));
+      "MQTT", "Connected to MQTT server. Server: " + String(this->getServer()) +
+                  ". Client ID: " + String(this->getDeviceId()));
 
   return true;
 }
@@ -120,11 +120,12 @@ void MqttService::Publish(MqttMessage *message) {
   bool published =
       this->getClient()->publish(topic.c_str(), message->GetPayload());
   if (published) {
-    this->getLogger()->Debug("[MQTT] Data published. Topic: " + topic +
-                             ". Payload: " + message->GetPayload());
+    this->getLogger()->Debug("MQTT", "Data published. Topic: " + topic +
+                                         ". Payload: " + message->GetPayload());
   } else {
-    this->getLogger()->Error("[MQTT] Failed to publish the data. Topic: " +
-                             topic + ". Payload: " + message->GetPayload());
+    this->getLogger()->Error("MQTT",
+                             "Failed to publish the data. Topic: " + topic +
+                                 ". Payload: " + message->GetPayload());
   }
 }
 
@@ -132,10 +133,10 @@ void MqttService::Subscribe(String subject) {
   String topic = this->getTopic(subject);
   bool subscribed = this->getClient()->subscribe(topic.c_str());
   if (subscribed) {
-    this->getLogger()->Debug("[MQTT] Subscribed to the topic: " + topic);
+    this->getLogger()->Debug("MQTT", "Subscribed to the topic: " + topic);
   } else {
-    this->getLogger()->Error("[MQTT] Failed to subscribe to the topic: " +
-                             topic);
+    this->getLogger()->Error("MQTT",
+                             "Failed to subscribe to the topic: " + topic);
   }
 }
 

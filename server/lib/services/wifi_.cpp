@@ -32,9 +32,9 @@ void WifiService::Connect() {
 
   while (!this->IsConnected()) {
     if (retryTimeMs >= this->getMaxRetryTimeMs()) {
-      this->getLogger()->Error(
-          "[WIFI] Connection to WiFi network failed. SSID: " +
-          String(this->getSsid()));
+      this->getLogger()->Error("WIFI",
+                               "Connection to WiFi network failed. SSID: " +
+                                   String(this->getSsid()));
       return;
     }
 
@@ -42,8 +42,8 @@ void WifiService::Connect() {
   }
 
   this->getLogger()->Info(
-      "[WIFI] Connected to WiFi network. SSID: " + String(this->getSsid()) +
-      ". IP: " + String(WiFi.localIP().toString().c_str()));
+      "WIFI", "Connected to WiFi network. SSID: " + String(this->getSsid()) +
+                  ". IP: " + String(WiFi.localIP().toString().c_str()));
 }
 
 bool WifiService::IsConnected() {

@@ -8,28 +8,32 @@ Logger::Logger() : baudRate(115200) {}
 
 void Logger::Begin() {
   Serial.begin(this->getBaudRate());
-    while (!Serial)
-      continue;
+  while (!Serial)
+    continue;
 
-  this->Info("[LOGGER] Logger initialized successfully");
+  this->Info("LOGGER", "Logger initialized successfully");
 }
 
 Logger::~Logger() {}
 
-void Logger::Error(String message) {
-  Serial.println("level=\"ERROR\"; message=\"" + message + "\"");
+void Logger::Error(String source, String message) {
+  Serial.println("level=\"ERROR\" source=\"" + source + "\" message=\"" +
+                 message + "\"");
 }
 
-void Logger::Warning(String message) {
-  Serial.println("level=\"WARNING\"; message=\"" + message + "\"");
+void Logger::Warning(String source, String message) {
+  Serial.println("level=\"WARNING\" source=\"" + source + "\" message=\"" +
+                 message + "\"");
 }
 
-void Logger::Debug(String message) {
-  Serial.println("level=\"DEBUG\"; message=\"" + message + "\"");
+void Logger::Debug(String source, String message) {
+  Serial.println("level=\"DEBUG\" source=\"" + source + "\" message=\"" +
+                 message + "\"");
 }
 
-void Logger::Info(String message) {
-  Serial.println("level=\"INFO\"; message=\"" + message + "\"");
+void Logger::Info(String source, String message) {
+  Serial.println("level=\"INFO\" source=\"" + source + "\" message=\"" +
+                 message + "\"");
 }
 
 } // namespace logging

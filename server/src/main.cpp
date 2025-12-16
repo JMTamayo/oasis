@@ -29,12 +29,12 @@ services::MqttService *mqtt;
 services::MqttMessage *message;
 
 void resetServer() {
-  logger->Info("[RESET] Resetting server");
+  logger->Info("RESET", "Resetting server");
   ESP.restart();
 }
 
 void resetController() {
-  logger->Info("[RESET] Resetting controller");
+  logger->Info("RESET", "Resetting controller");
   digitalWrite(RESET_CONTROLLER_PIN, LOW);
   delayMicroseconds(RESET_CONTROLLER_DELAY_MICROSECONDS);
   digitalWrite(RESET_CONTROLLER_PIN, HIGH);
@@ -45,8 +45,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
   String payloadStr = (char *)payload;
   payloadStr.remove(length);
 
-  logger->Info("[MQTT] Message received. Topic: " + topicStr + ". Payload: " +
-               (payloadStr.length() > 0 ? payloadStr : "(empty)"));
+  logger->Info("MQTT", "Message received. Topic: " + topicStr + ". Payload: " +
+                           (payloadStr.length() > 0 ? payloadStr : "(empty)"));
 
   String subject = mqtt->GetSubject(topicStr);
   if (subject.equals(COMMAND_RESET_SERVER)) {
@@ -92,7 +92,7 @@ void setup() {
                                 logger);
   comm->Begin();
 
-  logger->Info("[SETUP] Device setup completed");
+  logger->Info("SETUP", "Device setup completed");
 }
 
 void loop() {
