@@ -139,7 +139,7 @@ void setup() {
                                SEN0193_2_WATER_VALUE, SEN0193_2_AIR_VALUE);
 
   samplingTime = DEFAULT_SAMPLING_TIME_MS;
-  lastMeasurementTime = millis();
+  lastMeasurementTime = millis() - samplingTime + MIN_SAMPLING_TIME_MS;
 }
 
 void loop() {
