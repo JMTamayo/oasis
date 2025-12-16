@@ -18,13 +18,13 @@ public:
 
   void Begin();
 
-  void Error(String message);
+  void Error(String source, String message);
 
-  void Warning(String message);
+  void Warning(String source, String message);
 
-  void Debug(String message);
+  void Debug(String source, String message);
 
-  void Info(String message);
+  void Info(String source, String message);
 };
 
 } // namespace logging
