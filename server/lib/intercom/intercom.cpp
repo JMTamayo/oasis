@@ -44,8 +44,8 @@ services::MqttMessage *Intercom::Loop() {
     String data = this->getSerial()->readStringUntil('\n');
     data.trim();
 
-    this->getLogger()->Debug(
-        "[INTERCOM] Data received from the controller: \"" + data + "\"");
+    this->getLogger()->Debug("[INTERCOM] Data received from the controller: '" +
+                             data + "'");
 
     int index = data.indexOf(this->getCommandSeparator());
 

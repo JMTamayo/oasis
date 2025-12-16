@@ -42,15 +42,32 @@ bool Geolocation::IsLocalizationTimeReached() {
 String Geolocation::Localize() {
   String emptyString = String("");
 
-  int statusCode = this->httpClient->GET();
+  int statusCode = this->getHttpClient()->GET();
   if (statusCode != HTTP_CODE_OK) {
-    this->getLogger()->Error("Failed to get geolocation. Status code: " +
-                             String(statusCode));
+    this->getLogger()->Error(
+        "[GEOLOCATION] Failed to get geolocation. Status code: " +
+        String(statusCode));
     return emptyString;
   }
 
+  String responseBody = this->getHttpClient()->getString();
+  if (responseBody.isEmpty()) {
+    this->getLogger()->Error(
+        "[GEOLOCATION] Failed to get geolocation. Response body is empty");
+    return emptyString;
+
+  } else if (responseBody == "null") {
+    this->getLogger()->Error(
+        "[GEOLOCATION] Failed to get geolocation. Response body is null");
+    return emptyString;
+
+  } else {
+    this->getLogger()->Debug("[GEOLOCATION] Geolocation service response: " +
+                             responseBody);
+  }
+
   JsonDocument payloadDoc;
-  deserializeJson(payloadDoc, this->httpClient->getString());
+  deserializeJson(payloadDoc, responseBody);
 
   JsonDocument json;
 
