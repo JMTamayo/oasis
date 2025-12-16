@@ -44,26 +44,26 @@ String Geolocation::Localize() {
 
   int statusCode = this->getHttpClient()->GET();
   if (statusCode != HTTP_CODE_OK) {
-    this->getLogger()->Error(
-        "[GEOLOCATION] Failed to get geolocation. Status code: " +
-        String(statusCode));
+    this->getLogger()->Error("GEOLOCATION",
+                             "Failed to get geolocation. Status code: " +
+                                 String(statusCode));
     return emptyString;
   }
 
   String responseBody = this->getHttpClient()->getString();
   if (responseBody.isEmpty()) {
     this->getLogger()->Error(
-        "[GEOLOCATION] Failed to get geolocation. Response body is empty");
+        "GEOLOCATION", "Failed to get geolocation. Response body is empty");
     return emptyString;
 
   } else if (responseBody == "null") {
     this->getLogger()->Error(
-        "[GEOLOCATION] Failed to get geolocation. Response body is null");
+        "GEOLOCATION", "Failed to get geolocation. Response body is null");
     return emptyString;
 
   } else {
-    this->getLogger()->Debug("[GEOLOCATION] Geolocation service response: " +
-                             responseBody);
+    this->getLogger()->Debug("GEOLOCATION",
+                             "Geolocation service response: " + responseBody);
   }
 
   JsonDocument payloadDoc;

@@ -31,8 +31,8 @@ void Intercom::Begin() {
   while (!this->getSerial())
     continue;
 
-  this->getLogger()->Info(
-      "[INTERCOM] Intercom system initialized successfully");
+  this->getLogger()->Info("INTERCOM",
+                          "Intercom system initialized successfully");
 }
 
 void Intercom::Transmit(String command, String payload) {
@@ -44,8 +44,8 @@ services::MqttMessage *Intercom::Loop() {
     String data = this->getSerial()->readStringUntil('\n');
     data.trim();
 
-    this->getLogger()->Debug("[INTERCOM] Data received from the controller: '" +
-                             data + "'");
+    this->getLogger()->Debug(
+        "INTERCOM", "Data received from the controller: '" + data + "'");
 
     int index = data.indexOf(this->getCommandSeparator());
 
