@@ -2,7 +2,6 @@
 #define GEOLOCATION_H
 
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <HTTPClient.h>
 
 #include "logger.h"
