@@ -277,38 +277,85 @@ void commandNotSupported(String command) {
   server via queue.
  */
 void publishMeasurements() {
-  services::MqttMessage *airTemperatureMsg = new services::MqttMessage(
-      MQTT_SUBJECT_AIR_TEMPERATURE, dht->readTemperature());
-  if (xQueueSend(MqttPublishingEventQueue, &airTemperatureMsg,
-                 pdMS_TO_TICKS(10)) != pdPASS)
-    delete airTemperatureMsg;
+  float airTemperature = dht->readTemperature();
+  if (isnan(airTemperature)) {
+    services::MqttMessage *errorMsg = new services::MqttMessage(
+        MQTT_SUBJECT_ERROR,
+        String("Failed to read air temperature. NaN value obtained."));
+    if (xQueueSend(MqttPublishingEventQueue, &errorMsg, pdMS_TO_TICKS(10)) !=
+        pdPASS)
+      delete errorMsg;
+  } else {
+    services::MqttMessage *airTemperatureMsg =
+        new services::MqttMessage(MQTT_SUBJECT_AIR_TEMPERATURE, airTemperature);
+    if (xQueueSend(MqttPublishingEventQueue, &airTemperatureMsg,
+                   pdMS_TO_TICKS(10)) != pdPASS)
+      delete airTemperatureMsg;
+  }
 
-  services::MqttMessage *airHumidityMsg =
-      new services::MqttMessage(MQTT_SUBJECT_AIR_HUMIDITY, dht->readHumidity());
-  if (xQueueSend(MqttPublishingEventQueue, &airHumidityMsg,
-                 pdMS_TO_TICKS(10)) != pdPASS)
-    delete airHumidityMsg;
+  float airHumidity = dht->readHumidity();
+  if (isnan(airHumidity)) {
+    services::MqttMessage *errorMsg = new services::MqttMessage(
+        MQTT_SUBJECT_ERROR,
+        String("Failed to read air humidity. NaN value obtained."));
+    if (xQueueSend(MqttPublishingEventQueue, &errorMsg, pdMS_TO_TICKS(10)) !=
+        pdPASS)
+      delete errorMsg;
+  } else {
+    services::MqttMessage *airHumidityMsg =
+        new services::MqttMessage(MQTT_SUBJECT_AIR_HUMIDITY, airHumidity);
+    if (xQueueSend(MqttPublishingEventQueue, &airHumidityMsg,
+                   pdMS_TO_TICKS(10)) != pdPASS)
+      delete airHumidityMsg;
+  }
 
   float soilMoisture1 = sen0193_1->Read();
-  services::MqttMessage *soilMoisture1Msg =
-      new services::MqttMessage(MQTT_SUBJECT_SOIL_MOISTURE_1, soilMoisture1);
-  if (xQueueSend(MqttPublishingEventQueue, &soilMoisture1Msg,
-                 pdMS_TO_TICKS(10)) != pdPASS)
-    delete soilMoisture1Msg;
+  if (isnan(soilMoisture1)) {
+    services::MqttMessage *errorMsg = new services::MqttMessage(
+        MQTT_SUBJECT_ERROR,
+        String("Failed to read soil moisture 1. NaN value obtained."));
+    if (xQueueSend(MqttPublishingEventQueue, &errorMsg, pdMS_TO_TICKS(10)) !=
+        pdPASS)
+      delete errorMsg;
+  } else {
+    services::MqttMessage *soilMoisture1Msg =
+        new services::MqttMessage(MQTT_SUBJECT_SOIL_MOISTURE_1, soilMoisture1);
+    if (xQueueSend(MqttPublishingEventQueue, &soilMoisture1Msg,
+                   pdMS_TO_TICKS(10)) != pdPASS)
+      delete soilMoisture1Msg;
+  }
 
   float soilMoisture2 = sen0193_2->Read();
-  services::MqttMessage *soilMoisture2Msg =
-      new services::MqttMessage(MQTT_SUBJECT_SOIL_MOISTURE_2, soilMoisture2);
-  if (xQueueSend(MqttPublishingEventQueue, &soilMoisture2Msg,
-                 pdMS_TO_TICKS(10)) != pdPASS)
-    delete soilMoisture2Msg;
+  if (isnan(soilMoisture2)) {
+    services::MqttMessage *errorMsg = new services::MqttMessage(
+        MQTT_SUBJECT_ERROR,
+        String("Failed to read soil moisture 2. NaN value obtained."));
+    if (xQueueSend(MqttPublishingEventQueue, &errorMsg, pdMS_TO_TICKS(10)) !=
+        pdPASS)
+      delete errorMsg;
+  } else {
+    services::MqttMessage *soilMoisture2Msg =
+        new services::MqttMessage(MQTT_SUBJECT_SOIL_MOISTURE_2, soilMoisture2);
+    if (xQueueSend(MqttPublishingEventQueue, &soilMoisture2Msg,
+                   pdMS_TO_TICKS(10)) != pdPASS)
+      delete soilMoisture2Msg;
+  }
 
   float averageSoilMoisture = (soilMoisture1 + soilMoisture2) / 2;
-  services::MqttMessage *averageSoilMoistureMsg = new services::MqttMessage(
-      MQTT_SUBJECT_AVERAGE_SOIL_MOISTURE, averageSoilMoisture);
-  if (xQueueSend(MqttPublishingEventQueue, &averageSoilMoistureMsg,
-                 pdMS_TO_TICKS(10)) != pdPASS)
-    delete averageSoilMoistureMsg;
+  if (isnan(averageSoilMoisture)) {
+    services::MqttMessage *errorMsg = new services::MqttMessage(
+        MQTT_SUBJECT_ERROR,
+        String("Failed to read average soil moisture. NaN value obtained."));
+    if (xQueueSend(MqttPublishingEventQueue, &errorMsg, pdMS_TO_TICKS(10)) !=
+        pdPASS)
+      delete errorMsg;
+  } else {
+    services::MqttMessage *averageSoilMoistureMsg = new services::MqttMessage(
+        MQTT_SUBJECT_AVERAGE_SOIL_MOISTURE, averageSoilMoisture);
+    if (xQueueSend(MqttPublishingEventQueue, &averageSoilMoistureMsg,
+                   pdMS_TO_TICKS(10)) != pdPASS)
+      delete averageSoilMoistureMsg;
+  }
 }
 
 /**
