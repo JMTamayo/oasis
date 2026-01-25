@@ -503,6 +503,7 @@ void setup() {
 
   // Initialize the MQTT client and service
   mqttClient = new PubSubClient(*espClient);
+  mqttClient->setBufferSize(MQTT_BUFFER_SIZE);
   mqttClient->setCallback(mqttSubscriptionCallback);
 
   mqtt = new services::MqttService(

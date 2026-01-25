@@ -56,58 +56,7 @@ String Geolocation::Localize() {
   }
 
   String responseBody = this->getHttpClient()->getString();
-  if (responseBody.isEmpty()) {
-    this->getLogger()->Error(
-        "GEOLOCATION", "Failed to get geolocation. Response body is empty");
-    return emptyString;
-
-  } else if (responseBody.equals("null")) {
-    this->getLogger()->Error(
-        "GEOLOCATION", "Failed to get geolocation. Response body is null");
-    return emptyString;
-
-  } else {
-    this->getLogger()->Debug("GEOLOCATION",
-                             "Geolocation service response: " + responseBody);
-  }
-
-  JsonDocument payloadDoc;
-  deserializeJson(payloadDoc, responseBody);
-
-  JsonDocument json;
-
-  if (payloadDoc["lat"].is<float>()) {
-    json["lat"] = payloadDoc["lat"];
-  }
-  if (payloadDoc["lon"].is<float>()) {
-    json["lon"] = payloadDoc["lon"];
-  }
-  if (payloadDoc["city"].is<String>()) {
-    json["city"] = payloadDoc["city"];
-  }
-  if (payloadDoc["country"].is<String>()) {
-    json["country"] = payloadDoc["country"];
-  }
-  if (payloadDoc["regionName"].is<String>()) {
-    json["state"] = payloadDoc["regionName"];
-  }
-  if (payloadDoc["zip"].is<String>()) {
-    json["zip_code"] = payloadDoc["zip"];
-  }
-  if (payloadDoc["timezone"].is<String>()) {
-    json["timezone"] = payloadDoc["timezone"];
-  }
-  if (payloadDoc["isp"].is<String>()) {
-    json["isp"] = payloadDoc["isp"];
-  }
-  if (payloadDoc["query"].is<String>()) {
-    json["ip"] = payloadDoc["query"];
-  }
-
-  String jsonString;
-  serializeJson(json, jsonString);
-
-  return jsonString;
+  return responseBody;
 }
 
 services::MqttMessage *Geolocation::Loop() {
