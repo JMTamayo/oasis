@@ -124,6 +124,7 @@ private:
 
   const char *projectName;        // The project name.
   const char *deviceId;           // The unique device ID.
+  const char *projectVersion;       // The project version.
   const char *topicBaseSeparator; // The separator for the topics.
 
   logging::Logger *logger; // The logger to use to log important information
@@ -188,6 +189,14 @@ private:
   const char *getDeviceId() const;
 
   /**
+    Get the project version.
+
+    Returns:
+      The project version.
+   */
+  const char *getProjectVersion() const;
+
+  /**
     Get the separator for the topics.
 
     Returns:
@@ -241,6 +250,7 @@ public:
       password - The MQTT password.
       projectName - The name of the project.
       deviceId - The unique ID of the device.
+      projectVersion - The project version.
       topicBaseSeparator - The separator for the topics.
       maxRetryTimeMs - The maximum retry time to connect to the MQTT server in
         milliseconds.
@@ -250,7 +260,8 @@ public:
    */
   MqttService(const char *server, const unsigned int port, const char *user,
               const char *password, const char *projectName,
-              const char *deviceId, const char *topicBaseSeparator,
+              const char *deviceId, const char *projectVersion,
+              const char *topicBaseSeparator,
               const unsigned long maxRetryTimeMs, PubSubClient *client,
               logging::Logger *logger);
 

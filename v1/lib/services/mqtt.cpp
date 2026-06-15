@@ -42,6 +42,8 @@ const char *MqttService::getProjectName() const { return this->projectName; }
 
 const char *MqttService::getDeviceId() const { return this->deviceId; }
 
+const char *MqttService::getProjectVersion() const { return this->projectVersion; }
+
 const char *MqttService::getTopicBaseSeparator() const {
   return this->topicBaseSeparator;
 }
@@ -58,6 +60,8 @@ String MqttService::getBaseTopic() const {
   return String(this->getTopicBaseSeparator()) +
          String(this->getProjectName()) +
          String(this->getTopicBaseSeparator()) + String(this->getDeviceId()) +
+         String(this->getTopicBaseSeparator()) +
+         String(this->getProjectVersion()) +
          String(this->getTopicBaseSeparator());
 }
 
@@ -68,13 +72,14 @@ String MqttService::getTopic(String subject) const {
 MqttService::MqttService(const char *server, const unsigned int port,
                          const char *user, const char *password,
                          const char *projectName, const char *deviceId,
+                         const char *projectVersion,
                          const char *topicBaseSeparator,
                          const unsigned long maxRetryTimeMs,
                          PubSubClient *client, logging::Logger *logger)
     : server(server), port(port), user(user), password(password),
       projectName(projectName), deviceId(deviceId),
-      topicBaseSeparator(topicBaseSeparator), maxRetryTimeMs(maxRetryTimeMs),
-      client(client), logger(logger) {
+      projectVersion(projectVersion), topicBaseSeparator(topicBaseSeparator),
+      maxRetryTimeMs(maxRetryTimeMs), client(client), logger(logger) {
   client->setServer(this->getServer(), this->getPort());
 }
 
@@ -145,7 +150,8 @@ void MqttService::Subscribe(String subject) {
 String MqttService::GetSubject(String topic) const {
   String separator = String(this->getTopicBaseSeparator());
   String expectedPrefix = separator + String(this->getProjectName()) +
-                          separator + String(this->getDeviceId()) + separator;
+                          separator + String(this->getDeviceId()) + separator +
+                          String(this->getProjectVersion()) + separator;
 
   if (topic.startsWith(expectedPrefix))
     return topic.substring(expectedPrefix.length());

@@ -1,3 +1,9 @@
+#pragma once
+
+// Configuration parameters to define the project:
+#define PROJECT_NAME "oasis"
+#define PROJECT_VERSION "v1"
+
 // Configuration parameters for the device:
 #define DEVICE_ANALOG_READ_RESOLUTION 4095
 #define DEVICE_ANALOG_READ_VOLTAGE 3.3
@@ -10,7 +16,7 @@
 
 #define GEOLOCATION_HANDLING_TASK_NAME "geolocationHandling"
 #define GEOLOCATION_HANDLING_TASK_PRIORITY 0
-#define GEOLOCATION_HANDLING_TASK_STACK_SIZE 4096
+#define GEOLOCATION_HANDLING_TASK_STACK_SIZE 8192
 #define GEOLOCATION_HANDLING_TASK_CORE 0
 
 #define CONTROL_HANDLING_TASK_NAME "controlHandling"

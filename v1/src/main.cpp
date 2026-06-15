@@ -79,8 +79,8 @@ QueueHandle_t MqttSubscriptionsEventQueue; // Queue for incoming MQTT
  */
 void mqttSubscriptionCallback(char *topic, byte *payload, unsigned int length) {
   String topicStr = topic;
-  String payloadStr = (char *)payload;
-  payloadStr.remove(length);
+  String payloadStr;
+  payloadStr.concat((const char *)payload, length);
   String subject = mqtt->GetSubject(topicStr);
 
   logger->Info("MQTT", "Message received. Topic: " + topicStr + ". Payload: " +
@@ -508,8 +508,8 @@ void setup() {
 
   mqtt = new services::MqttService(
       MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, PROJECT_NAME, DEVICE_ID,
-      MQTT_TOPIC_BASE_SEPARATOR, MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient,
-      logger);
+      PROJECT_VERSION, MQTT_TOPIC_BASE_SEPARATOR,
+      MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient, logger);
 
   // Initialize the geolocation service
   geolocation = new services::Geolocation(
@@ -534,6 +534,15 @@ void setup() {
   lastDisplayEnabledTime = currentTime;
   displayEnabledTime = DEFAULT_DISPLAY_ENABLED_TIME_MILLISECONDS;
 
+  // Set up the queues before creating the tasks. The tasks reference these
+  // queues as soon as they start, and tasks pinned to the other core begin
+  // running in parallel while setup() is still executing. Creating the queues
+  // first prevents any task from dereferencing a NULL queue handle.
+  MqttPublishingEventQueue = xQueueCreate(MQTT_PUBLISHING_EVENT_QUEUE_SIZE,
+                                          sizeof(services::MqttMessage *));
+  MqttSubscriptionsEventQueue = xQueueCreate(
+      MQTT_SUBSCRIPTIONS_EVENT_QUEUE_SIZE, sizeof(services::MqttMessage *));
+
   // Set up the tasks
   xTaskCreatePinnedToCore(serverHandling, SERVER_HANDLING_TASK_NAME,
                           SERVER_HANDLING_TASK_STACK_SIZE, NULL,
@@ -549,12 +558,6 @@ void setup() {
                           CONTROL_HANDLING_TASK_STACK_SIZE, NULL,
                           CONTROL_HANDLING_TASK_PRIORITY, &ControlHandlingTask,
                           CONTROL_HANDLING_TASK_CORE);
-
-  // Set up the queues
-  MqttPublishingEventQueue = xQueueCreate(MQTT_PUBLISHING_EVENT_QUEUE_SIZE,
-                                          sizeof(services::MqttMessage *));
-  MqttSubscriptionsEventQueue = xQueueCreate(
-      MQTT_SUBSCRIPTIONS_EVENT_QUEUE_SIZE, sizeof(services::MqttMessage *));
 
   logger->Info("SETUP", "Device setup completed");
 }
