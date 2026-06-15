@@ -1,3 +1,9 @@
+#pragma once
+
+// Configuration parameters to define the project:
+#define PROJECT_NAME "oasis"
+#define PROJECT_VERSION "v1"
+
 // Configuration parameters for the device:
 #define DEVICE_ANALOG_READ_RESOLUTION 4095
 #define DEVICE_ANALOG_READ_VOLTAGE 3.3

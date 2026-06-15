@@ -508,8 +508,8 @@ void setup() {
 
   mqtt = new services::MqttService(
       MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, PROJECT_NAME, DEVICE_ID,
-      MQTT_TOPIC_BASE_SEPARATOR, MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient,
-      logger);
+      PROJECT_VERSION, MQTT_TOPIC_BASE_SEPARATOR,
+      MQTT_MAX_RETRY_TIME_MILLISECONDS, mqttClient, logger);
 
   // Initialize the geolocation service
   geolocation = new services::Geolocation(

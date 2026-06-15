@@ -6,7 +6,7 @@ This prototype allows monitoring of plant humidity, temperature and relative air
 
 The microcontroller publishes the measured values to an MQTT server, which can be accessed from a web interface, mobile app, desktop app or any other device that supports MQTT. The values are published as follows:
 
-- **Schema**: `/oasis/<device-id>/<topic>`
+- **Schema**: `/oasis/<device-id>/v1/<topic>`
 - **Topics**:
   - `air-temperature`: Air temperature [°C].
   - `air-humidity`: Air humidity [%].
@@ -18,7 +18,7 @@ The microcontroller publishes the measured values to an MQTT server, which can b
 
 The device can be controlled by sending the following commands to the MQTT server:
 
-- **Schema**: `/oasis/<device-id>/<command>`
+- **Schema**: `/oasis/<device-id>/v1/<command>`
 - **Commands**:
   - `ping`: Ping the device, the response is a pong message.
   - `restart-device`: Restart the device.
