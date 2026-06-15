@@ -8,9 +8,7 @@ unsigned int OledSsd1306::getWidth() { return this->width; }
 
 unsigned int OledSsd1306::getHeight() { return this->height; }
 
-String OledSsd1306::getHeader() {
-  return String(this->projectName) + " " + String(this->deviceId);
-}
+String OledSsd1306::getHeader() { return String(this->projectName); }
 
 String OledSsd1306::floatToString_6(float num) {
   String result;
@@ -29,10 +27,8 @@ String OledSsd1306::floatToString_6(float num) {
 }
 
 OledSsd1306::OledSsd1306(unsigned int width, unsigned int height,
-                         unsigned int address, const char *projectName,
-                         const char *deviceId)
-    : width(width), height(height), projectName(projectName),
-      deviceId(deviceId) {
+                         unsigned int address, const char *projectName)
+    : width(width), height(height), projectName(projectName) {
   this->display = new Adafruit_SSD1306(width, height, &Wire, -1);
 }
 

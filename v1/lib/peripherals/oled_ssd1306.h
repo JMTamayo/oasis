@@ -21,7 +21,6 @@ private:
   unsigned int height; // The height of the display.
 
   const char *projectName; // The project name.
-  const char *deviceId;    // The device ID.
 
   /**
     Get the display object.
@@ -51,7 +50,7 @@ private:
     Get the header.
 
     Returns:
-      The header, which is the project name and the device ID.
+      The header, which is the project name.
    */
   String getHeader();
 
@@ -77,10 +76,9 @@ public:
       height - The height of the display.
       address - The address of the display.
       projectName - The project name.
-      deviceId - The device ID.
    */
   OledSsd1306(unsigned int width, unsigned int height, unsigned int address,
-              const char *projectName, const char *deviceId);
+              const char *projectName);
 
   /**
     Destructor.

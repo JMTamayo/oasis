@@ -483,8 +483,7 @@ void setup() {
 
   // Initialize the OLED SSD1306 display
   oled = new peripherals::OledSsd1306(OLED_SSD1306_WIDTH, OLED_SSD1306_HEIGHT,
-                                      OLED_SSD1306_ADDRESS, PROJECT_NAME,
-                                      DEVICE_ID);
+                                      OLED_SSD1306_ADDRESS, PROJECT_NAME);
   bool ok = oled->Begin(OLED_SSD1306_ADDRESS);
   if (!ok)
     logger->Error("SETUP", "Failed to initialize the OLED SSD1306 display");
